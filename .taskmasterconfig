@@ -7,10 +7,10 @@
       "temperature": 0.2
     },
     "research": {
-      "provider": "siliconflow",
-      "modelId": "deepseek-ai/DeepSeek-V3",
-      "maxTokens": 8192,
-      "temperature": 0.1
+      "provider": "requesty",
+      "modelId": "perplexity/sonar-reasoning-pro",
+      "maxTokens": 150,
+      "temperature": 0.7
     },
     "fallback": {
       "provider": "siliconflow",
