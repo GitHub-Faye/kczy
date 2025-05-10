@@ -1,0 +1,578 @@
+{
+  "tasks": [
+    {
+      "dependencies": [],
+      "description": "Initialize the project repository with necessary structure and dependencies.",
+      "details": "Create a new Python project with a virtual environment. Install PyTorch, torchvision, matplotlib, numpy, and pandas. Set up a basic directory structure for source code, data, and models.",
+      "id": 1,
+      "priority": "high",
+      "status": "done",
+      "testStrategy": "Verify the environment setup by running a simple PyTorch script to ensure all dependencies are correctly installed.",
+      "title": "Setup Project Repository",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Creating the virtual environment",
+          "description": "Set up a virtual environment to isolate project dependencies.",
+          "dependencies": [],
+          "details": "Use a tool like `venv` or `conda` to create a new virtual environment for the project.",
+          "status": "done"
+        },
+        {
+          "id": 2,
+          "title": "Installing core dependencies",
+          "description": "Install the necessary Python packages and libraries required for the project.",
+          "dependencies": [
+            1
+          ],
+          "details": "Use `pip` or `conda` to install dependencies listed in a `requirements.txt` or `environment.yml` file.",
+          "status": "done"
+        },
+        {
+          "id": 3,
+          "title": "Setting up directory structure",
+          "description": "Organize the project files into a logical directory structure.",
+          "dependencies": [
+            1
+          ],
+          "details": "Create directories such as `src`, `tests`, `docs`, and `data` to organize the project files.",
+          "status": "done"
+        },
+        {
+          "id": 4,
+          "title": "Verifying the setup with a test script",
+          "description": "Run a simple test script to ensure the environment and dependencies are correctly configured.",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "Write and execute a basic script (e.g., `test.py`) to confirm that the setup works as expected.",
+          "status": "done"
+        }
+      ]
+    },
+    {
+      "dependencies": [
+        1
+      ],
+      "description": "Develop the module to handle dataset loading, preprocessing, and augmentation.",
+      "details": "Create a data loader class that supports custom datasets. Implement data preprocessing and augmentation using torchvision transforms. Ensure compatibility with common image formats and provide options for custom transformations.",
+      "id": 2,
+      "priority": "high",
+      "status": "done",
+      "testStrategy": "Test the data loader with a sample dataset to ensure correct loading, preprocessing, and augmentation.",
+      "title": "Implement Data Processing Module",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Creating the base data loader class",
+          "description": "Develop a foundational data loader class capable of loading raw data from a specified source.",
+          "dependencies": [],
+          "details": "The base class should handle basic file operations and provide a structure for derived classes to implement specific data loading logic.",
+          "status": "done"
+        },
+        {
+          "id": 2,
+          "title": "Implementing preprocessing transforms",
+          "description": "Add preprocessing functionality to the data loader to clean and normalize raw data.",
+          "dependencies": [
+            1
+          ],
+          "details": "Include methods for common preprocessing tasks such as scaling, normalization, and handling missing values.\n<info added on 2025-05-07T03:39:53.006Z>\nImplementation plan for preprocessing transforms:\n1. Create a new file src/data/preprocessing.py to implement data preprocessing functions including normalization/standardization, missing value handling, data scaling, and outlier detection/processing.\n2. Current code observations:\n   - BaseDataset class exists in dataset.py for loading images and annotations.\n   - Basic transformation functionality is present in data_loader.py, primarily for image augmentation and basic preprocessing.\n   - Additional specialized data cleaning and preprocessing functions are needed.\n3. Implement the following in preprocessing.py:\n   - Data standardization functions.\n   - Methods for filling missing values.\n   - Data scalers.\n   - Outlier detection and processing.\n   - Preprocessing pipelines for different data types.\n4. Update __init__.py to export new preprocessing functionalities, making them accessible via the src.data.preprocessing module.\n</info added on 2025-05-07T03:39:53.006Z>",
+          "status": "done"
+        },
+        {
+          "id": 3,
+          "title": "Adding augmentation transforms",
+          "description": "Extend the data loader to support data augmentation techniques for enhancing dataset diversity.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Implement augmentation methods like rotation, flipping, and noise addition, ensuring they are optional and configurable.\n<info added on 2025-05-07T06:11:00.047Z>\nImplement augmentation methods like rotation, flipping, and noise addition, ensuring they are optional and configurable. <update timestamp='2023-11-06T12:00:00Z'>1. Create a new augmentation.py file. 2. Implement various data augmentation methods including: - Advanced rotation augmentation (flexible angle configuration) - Flip augmentation (horizontal and vertical) - Brightness, contrast, saturation, and hue adjustments - Random cropping and scaling - Noise augmentation (Gaussian noise, salt-and-pepper noise) - Blur and sharpen - Elastic transformation - Random erasing. 3. Implement an AugmentationPipeline class to allow users to customize the augmentation sequence. 4. Update __init__.py to export new functions. 5. Extend the get_transforms function to integrate new augmentation methods.</update>\n</info added on 2025-05-07T06:11:00.047Z>",
+          "status": "done"
+        },
+        {
+          "id": 4,
+          "title": "Supporting custom datasets",
+          "description": "Enable the data loader to work with user-defined datasets by providing flexible configuration options.",
+          "dependencies": [
+            1
+          ],
+          "details": "Allow users to specify custom data paths, formats, and preprocessing/augmentation settings via configuration files or parameters.\n<info added on 2025-05-07T06:53:08.397Z>\nAllow users to specify custom data paths, formats, and preprocessing/augmentation settings via configuration files or parameters. Implementation plan: 1. Create a `DatasetConfig` class in `src/data/config.py` to store and validate user-defined dataset parameters. 2. Extend `data_loader.py` to support creating data loaders from configuration objects. 3. Add configuration file read/write functionality supporting JSON or YAML formats. 4. Provide an example configuration template to demonstrate usage.\n</info added on 2025-05-07T06:53:08.397Z>",
+          "status": "done"
+        },
+        {
+          "id": 5,
+          "title": "Testing with sample data",
+          "description": "Validate the data loader's functionality by testing it with a variety of sample datasets.",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "Create test cases to verify data loading, preprocessing, augmentation, and custom dataset support, ensuring robustness and correctness.\n<info added on 2025-05-07T07:22:11.837Z>\nCreate test cases to verify data loading, preprocessing, augmentation, and custom dataset support, ensuring robustness and correctness. Test Strategy: 1. Test Case Design: - Unit tests for individual data loading functions (e.g., CSV, JSON, image loading). - Integration tests for preprocessing pipelines (normalization, resizing, etc.). - End-to-end tests for full data flow from loading to augmentation. - Edge cases: empty datasets, malformed files, large datasets. 2. Test Data Preparation: - Use diverse sample datasets (structured, unstructured, small/large files). - Include synthetic datasets to simulate edge cases. - Ensure datasets cover all supported formats and custom dataset configurations. 3. Verification Methods: - Compare loaded data against expected outputs (checksums, metadata). - Validate preprocessing results using reference implementations. - Test augmentation by visually inspecting samples or using metrics. - For custom datasets, verify compatibility and correct parsing. 4. Testing Frameworks: - pytest for Python-based unit and integration tests. - unittest for framework-agnostic test cases. - CI/CD pipelines for automated testing (e.g., GitHub Actions). - Performance testing tools (e.g., Locust) for large dataset handling.\n</info added on 2025-05-07T07:22:11.837Z>\n<info added on 2025-05-07T07:29:46.566Z>\nFocus on verifying the successful loading and processing of datasets in the project's 'data' folder. Testing will specifically ensure: 1. Correct reading of 'annotations.csv' file. 2. Proper loading of image files from the 'images' directory. 3. Accurate association of CSV annotation data with corresponding images. 4. Correct handling of sample data in 'data/examples' directory. Test Strategy: - Write simple test scripts to verify data loading. - Confirm all data formats (CSV, images) are parsed correctly. - Validate the data loader's ability to process the project's built-in datasets. - Skip complex performance testing; focus on basic functional verification.\n</info added on 2025-05-07T07:29:46.566Z>\n<info added on 2025-05-07T07:37:18.204Z>\n重新设计测试任务，专注于验证数据加载器对'data'目录下数据集的处理能力。数据集包含：1. 'images'目录中的图像文件；2. 'examples'目录中的示例数据；3. 'annotations.csv'文件（229KB，6166行）。测试目标：1. 确保数据加载器正确读取'annotations.csv'文件；2. 验证图像文件从'images'目录正确加载；3. 确保CSV注释数据与对应图像正确关联；4. 验证'examples'目录中的数据加载。测试方法：1. 编写简单测试脚本，直接验证数据加载功能；2. 检查所有文件格式（CSV、图像）是否正确解析；3. 确认数据加载器能正确处理内置数据集；4. 跳过复杂性能测试，仅验证基本功能。\n</info added on 2025-05-07T07:37:18.204Z>",
+          "status": "done"
+        }
+      ]
+    },
+    {
+      "dependencies": [
+        1
+      ],
+      "description": "Implement the core Vision Transformer model structure.",
+      "details": "Define the ViT model class in PyTorch, including patch embedding, transformer layers, and classification head. Support configurable parameters like patch size, embedding dimension, and number of layers.",
+      "id": 3,
+      "priority": "high",
+      "status": "done",
+      "testStrategy": "Validate the model architecture by running a forward pass with dummy input and checking the output dimensions.",
+      "title": "Develop Basic ViT Model Architecture",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implementing patch embedding",
+          "description": "Implement the patch embedding layer to convert input images into a sequence of flattened patches.",
+          "dependencies": [],
+          "details": "Divide the input image into fixed-size patches, flatten them, and project them into a lower-dimensional space using a linear layer.",
+          "status": "done"
+        },
+        {
+          "id": 2,
+          "title": "Defining transformer layers",
+          "description": "Define the transformer layers that will process the sequence of embedded patches.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement multi-head self-attention and feed-forward layers, including layer normalization and residual connections.",
+          "status": "done"
+        },
+        {
+          "id": 3,
+          "title": "Adding classification head",
+          "description": "Add a classification head to the model for final prediction.",
+          "dependencies": [
+            2
+          ],
+          "details": "Attach a linear layer or MLP to the output of the transformer layers to produce class probabilities.",
+          "status": "done"
+        },
+        {
+          "id": 4,
+          "title": "Making parameters configurable",
+          "description": "Ensure model parameters (e.g., patch size, embedding dimension, number of layers) are configurable.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Modify the implementation to allow flexible configuration of hyperparameters via arguments or a config file.",
+          "status": "done"
+        },
+        {
+          "id": 5,
+          "title": "Testing with dummy input",
+          "description": "Test the model with dummy input to verify the implementation.",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "Generate synthetic input data and run a forward pass to check for errors and validate the model's structure.",
+          "status": "done"
+        }
+      ]
+    },
+    {
+      "dependencies": [
+        2,
+        3
+      ],
+      "description": "Implement the training and evaluation logic for the ViT model.",
+      "details": "Develop a training script that includes loss calculation, backpropagation, and optimizer steps. Implement evaluation logic to compute accuracy on the test set. Support basic hyperparameters like learning rate and batch size.",
+      "id": 4,
+      "priority": "high",
+      "status": "done",
+      "testStrategy": "Run a short training session on a small dataset to ensure the training loop works and metrics are recorded correctly.",
+      "title": "Create Training Loop",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implementing loss calculation",
+          "description": "Implement the loss function to measure the difference between predicted and actual values.",
+          "dependencies": [],
+          "details": "Choose an appropriate loss function (e.g., MSE, Cross-Entropy) and implement it in the training loop.\n<info added on 2025-05-08T09:13:01.579Z>\nThe LossCalculator class has been implemented in train.py, supporting multiple loss functions: CrossEntropyLoss for multi-class classification, MSELoss for regression, BCEWithLogitsLoss for binary classification, and Focal Loss for handling class imbalance. The class is designed as a callable with a __call__ method for easy invocation. It includes configurable options such as class weights and reduction methods (mean, sum, or none). Focal Loss, an enhanced version of CrossEntropyLoss, has been specifically implemented to reduce the weight of easy-to-classify samples and increase the weight of hard-to-classify samples using the (1-pt)^gamma factor, where gamma is a tunable parameter.\n</info added on 2025-05-08T09:13:01.579Z>",
+          "status": "done"
+        },
+        {
+          "id": 2,
+          "title": "Adding backpropagation",
+          "description": "Implement backpropagation to compute gradients of the loss with respect to model parameters.",
+          "dependencies": [
+            1
+          ],
+          "details": "Ensure gradients are correctly computed and propagated through the network layers.\n<info added on 2025-05-08T13:40:40.707Z>\nBackpropManager class implemented in train.py with the following features:\n1. Gradient computation via compute_gradients method, supporting standard and mixed precision training (using GradScaler)\n2. Gradient clipping via apply_gradient_clipping method with two modes:\n   - Value-based clipping (clip_grad_value_): limits absolute values of gradient elements\n   - Norm-based clipping (clip_grad_norm_): limits L2 norm of gradients\n3. Parameter updates via optimizer_step method executing optimizer's step()\n4. Complete workflow through backward_and_update method combining all steps\n\nThe class supports flexible scenarios including standard/mixed precision training and retain_graph for complex multi-backward-pass cases.\n</info added on 2025-05-08T13:40:40.707Z>",
+          "status": "done"
+        },
+        {
+          "id": 3,
+          "title": "Setting up optimizer steps",
+          "description": "Configure the optimizer to update model parameters based on computed gradients.",
+          "dependencies": [
+            2
+          ],
+          "details": "Choose an optimizer (e.g., SGD, Adam) and implement the parameter update step.\n<info added on 2025-05-08T14:41:15.335Z>\nResearch and design for PyTorch optimizer steps completed. Key findings include: 1) PyTorch offers multiple optimizers (SGD, Adam, AdamW, RMSprop) suited for different scenarios. 2) Optimizer configuration requires attention to learning rate, weight decay, and specific parameters (e.g., momentum, beta values). 3) Learning rate schedulers (StepLR, CosineAnnealingLR) enable dynamic adjustment. 4) Adam/AdamW optimizers perform well for Vision Transformer models. Design plan: 1) Implement OptimizerManager class for initializing and managing optimizers and schedulers. 2) Extend BackpropManager to work with OptimizerManager. 3) Design TrainingLoop class to integrate loss computation, backpropagation, and optimizer steps. Implementation steps: 1) Build OptimizerManager with support for common optimizers and schedulers. 2) Modify BackpropManager for compatibility. 3) Optionally implement TrainingLoop as a high-level wrapper. 4) Add parameter group configuration for varied optimization strategies. 5) Implement checkpointing for resuming training.\n</info added on 2025-05-08T14:41:15.335Z>\n<info added on 2025-05-08T14:44:59.891Z>\nChoose an optimizer (e.g., SGD, Adam) and implement the parameter update step.\n<info added on 2025-05-08T14:41:15.335Z>\nResearch and design for PyTorch optimizer steps completed. Key findings include: 1) PyTorch offers multiple optimizers (SGD, Adam, AdamW, RMSprop) suited for different scenarios. 2) Optimizer configuration requires attention to learning rate, weight decay, and specific parameters (e.g., momentum, beta values). 3) Learning rate schedulers (StepLR, CosineAnnealingLR) enable dynamic adjustment. 4) Adam/AdamW optimizers perform well for Vision Transformer models. Design plan: 1) Implement OptimizerManager class for initializing and managing optimizers and schedulers. 2) Extend BackpropManager to work with OptimizerManager. 3) Design TrainingLoop class to integrate loss computation, backpropagation, and optimizer steps. Implementation steps: 1) Build OptimizerManager with support for common optimizers and schedulers. 2) Modify BackpropManager for compatibility. 3) Optionally implement TrainingLoop as a high-level wrapper. 4) Add parameter group configuration for varied optimization strategies. 5) Implement checkpointing for resuming training.\n</info added on 2025-05-08T14:41:15.335Z>\n<info added on 2025-05-08T15:30:00.000Z>\nImplementation of optimizer steps (OptimizerManager) completed with the following features:\n1. Created OptimizerManager class (src/models/optimizer_manager.py) supporting:\n   - Multiple optimizer types: SGD, Adam, AdamW, RMSprop\n   - Multiple learning rate schedulers: StepLR, MultiStepLR, ExponentialLR, CosineAnnealingLR\n   - Parameter group configuration for varied learning rates and weight decay\n   - Checkpoint saving and loading\n2. Modified BackpropManager class (src/models/train.py) to:\n   - Integrate with OptimizerManager\n   - Handle optimizer and optimizer manager objects\n   - Streamline parameter update process\n3. Added TrainingLoop class (src/models/train.py) providing:\n   - Complete training and validation loops\n   - Metric tracking and logging\n   - Learning rate scheduling\n   - Checkpoint saving\n\nThe implementation follows PyTorch best practices, offers flexible configuration, and ensures seamless integration with existing LossCalculator and BackpropManager components. These components enable easy configuration and management of optimization for Vision Transformer models.\n</info added on 2025-05-08T15:30:00.000Z>\n</info added on 2025-05-08T14:44:59.891Z>",
+          "status": "done"
+        },
+        {
+          "id": 4,
+          "title": "Adding evaluation logic",
+          "description": "Implement logic to evaluate model performance on validation or test data.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Include metrics like accuracy, precision, or recall to assess model performance.\n<info added on 2025-05-09T08:15:10.806Z>\nThe evaluation logic has been fully implemented with the following features: 1. An `evaluate` method for assessing model performance on test data, supporting test loss and accuracy calculation, precision, recall, and F1 score computation, confusion matrix generation, and detailed classification reports. It handles both multi-class and binary classification problems and includes an optional confusion matrix visualization. 2. A helper method `_plot_confusion_matrix` for visualizing confusion matrices with clear heatmap representations using seaborn, supporting output path saving. 3. A class method `evaluate_model` providing a simple API for model evaluation on test data, including loading trained model checkpoints, automatic device detection (CPU/GPU), and detailed evaluation report printing. 4. Enhancements to the TrainingLoop class for greater flexibility, such as making optimizer and backpropagation managers optional for evaluation-only runs, adding parameter validation in the train method, and handling optimizer absence during checkpoint saving. The implementation meets all task requirements and offers comprehensive performance metrics.\n</info added on 2025-05-09T08:15:10.806Z>",
+          "status": "done"
+        },
+        {
+          "id": 5,
+          "title": "Supporting hyperparameters",
+          "description": "Add support for tuning hyperparameters such as learning rate, batch size, and epochs.",
+          "dependencies": [
+            3
+          ],
+          "details": "Ensure hyperparameters can be easily adjusted and passed to the training loop.",
+          "status": "done"
+        },
+        {
+          "id": 6,
+          "title": "Testing with small dataset",
+          "description": "Test the entire training loop with a small dataset to verify correctness and stability.",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "details": "Run the training loop on a small dataset and check for expected behavior and outputs.\n<info added on 2025-05-09T08:41:19.926Z>\nRun the training loop on a small dataset and check for expected behavior and outputs. The testing script has been successfully implemented and verified the entire training process. Key functionalities tested include: 1) Creation of a synthetic dataset for testing, eliminating dependency on external data; 2) Verification of training loop components (model, loss calculator, optimizer manager, backpropagation manager); 3) Validation of training loop creation from configuration; 4) Full training test process including training loop and checkpoint saving; 5) Visualization of training loss and accuracy curves; 6) Model evaluation testing with metrics (loss, accuracy, precision, recall, F1 score); 7) Confusion matrix visualization; 8) Testing model loading from checkpoint and re-evaluation. All functionalities tested successfully, confirming the correctness of the training process.\n</info added on 2025-05-09T08:41:19.926Z>",
+          "status": "done"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Implement Performance Metrics Recording",
+      "description": "Set up comprehensive logging for training and test metrics with visualization capabilities.",
+      "status": "done",
+      "dependencies": [
+        4
+      ],
+      "priority": "medium",
+      "details": "Implement functionality to record, store, analyze and visualize loss, accuracy and other metrics during training and evaluation. Support flexible configuration and provide various output formats (CSV/JSON) with visualization options.",
+      "testStrategy": "Verify that all metric recording, storage, retrieval, visualization and analysis features work correctly through unit tests and simulated training sessions.",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Recording training metrics",
+          "description": "Implement functionality to record training metrics such as loss, accuracy, and other relevant performance indicators during the training process.",
+          "dependencies": [],
+          "details": "Ensure metrics are captured at specified intervals (e.g., per epoch or batch) and stored temporarily for further processing.\n<info added on 2025-05-09T12:05:21.046Z>\nImplementation plan for training metrics recording:\n1. Create a new `MetricsLogger` class in `src/utils/metrics_logger.py` to handle logging, saving, and loading of training/evaluation metrics in CSV and JSON formats.\n2. Integrate `MetricsLogger` into the existing `TrainingLoop` class in `src/models/train.py` to enable automatic metric recording during training.\n3. Enhance `TrainingLoop.train` method to support metric saving functionality, calling logging methods at key points (e.g., after each epoch).\n4. Ensure metrics include timestamps for analysis and maintain consistent data format.\n5. Provide flexible configuration options (save frequency, format selection) without disrupting existing training flow.\n6. Add utility methods for loading saved metrics and generating visualizations.\n</info added on 2025-05-09T12:05:21.046Z>",
+          "status": "done"
+        },
+        {
+          "id": 2,
+          "title": "Saving metrics to structured format",
+          "description": "Convert the recorded metrics into structured formats (JSON, CSV) with comprehensive storage and retrieval capabilities.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement advanced storage features including:\n- Flexible configuration of save directory, experiment name and format\n- Automatic directory creation\n- Multiple save formats (CSV/JSON)\n- Methods for loading training/evaluation metrics\n- Consolidated export of all metrics to single file\n\n<info added on 2025-05-10T00:18:15.207Z>\nImplemented functionality to save metrics in structured formats (JSON and CSV) within the `MetricsLogger` class. Methods include `_save_json()` and `_save_csv()` for saving metrics with epoch, value, and timestamp. Auto-save feature triggers at specified intervals, saving training metrics as `{experiment_name}_train_metrics.{format}` and evaluation metrics as `{experiment_name}_eval_metrics.{format}`. Loading functions (`load_train_metrics()`, `load_eval_metrics()`) support retrieval from saved files, with internal `_load_json()` and `_load_csv()` methods. Added `export_metrics()` to consolidate all metrics into a single file. Standardized data structures ensure consistency and readability, with tested save/load functionality.\n</info added on 2025-05-10T00:18:15.207Z>",
+          "status": "done"
+        },
+        {
+          "id": 3,
+          "title": "Implement visualization and analysis features",
+          "description": "Add comprehensive visualization and analysis capabilities for recorded metrics.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Implement the following visualization and analysis features:\n- plot_metric(): Draw single metric curves\n- plot_metrics(): Draw multiple metric comparisons\n- summary(): Generate statistical summaries\n- visualize_all_metrics(): Create comprehensive reports\n- get_best_epoch(): Identify optimal model performance\n\nIntegrate these features with the existing MetricsLogger class and ensure they work with both CSV and JSON formats.",
+          "status": "done"
+        },
+        {
+          "id": 4,
+          "title": "Complete system integration",
+          "description": "Fully integrate metrics recording into the training pipeline with configuration support.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Final integration tasks:\n1. Update TrainingConfig class with metrics recording parameters\n2. Complete integration of MetricsLogger into TrainingLoop\n3. Implement automatic visualization generation post-training\n4. Ensure all configuration options are properly exposed\n5. Verify end-to-end functionality through simulated training",
+          "status": "done"
+        },
+        {
+          "id": 5,
+          "title": "Comprehensive testing and validation",
+          "description": "Verify all metric recording, storage, visualization and analysis features.",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "Testing strategy:\n1. Expand existing test suite with visualization and analysis tests\n2. Add integration tests for full training pipeline\n3. Verify configuration options work as expected\n4. Test edge cases (empty metrics, invalid formats, etc.)\n5. Perform manual verification through simulated training sessions\n\n<info added on 2025-05-10T00:19:07.457Z>\nCompleted metric recording verification work:\n1. Created comprehensive unit test file `tests/test_metrics_logger.py` with the following tests:\n   - `test_init`: Verify `MetricsLogger` initialization correctly sets instance properties and file paths\n   - `test_log_train_metrics`: Verify training metric logging functionality\n   - `test_log_eval_metrics`: Verify evaluation metric logging functionality\n   - `test_save_load_csv`: Verify CSV format saving and loading\n   - `test_save_load_json`: Verify JSON format saving and loading\n   - `test_plot_metric`: Verify metric visualization\n   - `test_summary`: Verify metric summary generation\n\n2. Implemented `simulate_training()` function for manual testing, simulating a full training process:\n   - Simulated 50 training epochs\n   - Recorded loss, accuracy, learning rate, and other metrics\n   - Generated visualizations\n   - Produced summary reports\n\n3. Test results confirmed:\n   - All 7 unit test cases passed\n   - Simulated training successfully recorded all metrics\n   - Visualizations were generated correctly\n   - Metric summaries displayed expected statistical results\n\nTesting confirms the `MetricsLogger` class accurately records, saves, loads, and visualizes training/evaluation metrics, meeting task requirements.\n</info added on 2025-05-10T00:19:07.457Z>",
+          "status": "done"
+        }
+      ]
+    },
+    {
+      "dependencies": [
+        4
+      ],
+      "description": "Enable saving and loading trained models.",
+      "details": "Implement functions to save the model state and optimizer state. Support saving in PyTorch format and provide options for exporting to ONNX.",
+      "id": 6,
+      "priority": "medium",
+      "status": "pending",
+      "testStrategy": "Save a model after training and verify it can be loaded and used for inference.",
+      "title": "Develop Model Saving Functionality",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Saving model state",
+          "description": "Implement functionality to save the model's state (weights, architecture, etc.) in a compatible format.",
+          "dependencies": [],
+          "details": "Ensure the saved state includes all necessary components for reloading the model correctly, such as layer weights and configurations.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Saving optimizer state",
+          "description": "Implement functionality to save the optimizer's state (e.g., momentum buffers, learning rate schedules).",
+          "dependencies": [
+            1
+          ],
+          "details": "The optimizer state must be saved alongside the model state to ensure training can resume accurately.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Adding ONNX export support",
+          "description": "Implement functionality to export the model to the ONNX format for interoperability with other frameworks.",
+          "dependencies": [
+            1
+          ],
+          "details": "Ensure the exported ONNX model retains all necessary operations and is compatible with target inference environments.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "dependencies": [
+        5
+      ],
+      "description": "Develop simple tools to visualize training metrics.",
+      "details": "Use matplotlib to generate static plots of loss and accuracy over time. Provide functions to save plots to files.",
+      "id": 7,
+      "priority": "medium",
+      "status": "pending",
+      "testStrategy": "Generate plots from recorded metrics and verify they accurately represent the training progress.",
+      "title": "Create Basic Visualization Tools",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Plotting loss over time",
+          "description": "Create a plot showing the loss values over the training epochs.",
+          "dependencies": [],
+          "details": "Use the recorded loss values from each epoch to generate a line plot. Ensure the plot has appropriate labels for the x-axis (epochs) and y-axis (loss).",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Plotting accuracy over time",
+          "description": "Create a plot showing the accuracy values over the training epochs.",
+          "dependencies": [],
+          "details": "Use the recorded accuracy values from each epoch to generate a line plot. Ensure the plot has appropriate labels for the x-axis (epochs) and y-axis (accuracy).",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Saving plots to files",
+          "description": "Save the generated loss and accuracy plots to files.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Save the plots created in subtasks 1 and 2 to image files (e.g., PNG or JPEG format) in a specified directory. Ensure the filenames are descriptive and include timestamps if necessary.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "dependencies": [
+        1,
+        4
+      ],
+      "description": "Develop a CLI for configuring and launching training.",
+      "details": "Use argparse to create a command-line interface for setting hyperparameters, specifying datasets, and starting training. Include help messages and default values.",
+      "id": 8,
+      "priority": "medium",
+      "status": "pending",
+      "testStrategy": "Test the CLI with various arguments to ensure correct configuration and training launch.",
+      "title": "Build Command-Line Interface",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Setting up argparse",
+          "description": "Initialize the argparse module to handle command-line arguments.",
+          "dependencies": [],
+          "details": "Create a basic argparse setup including the parser object and basic configurations like description and help messages.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Adding hyperparameter arguments",
+          "description": "Add arguments for hyperparameters to the CLI.",
+          "dependencies": [
+            1
+          ],
+          "details": "Define hyperparameters such as learning rate, batch size, and number of epochs as command-line arguments with appropriate types and default values.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Adding dataset specification",
+          "description": "Add arguments to specify the dataset and related configurations.",
+          "dependencies": [
+            1
+          ],
+          "details": "Include arguments for dataset paths, splits (train/validation/test), and any dataset-specific parameters like augmentation options.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Testing CLI with various arguments",
+          "description": "Test the CLI with different combinations of arguments to ensure correctness.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Run the CLI with various argument combinations, including edge cases, to verify that all arguments are parsed correctly and the program behaves as expected.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "dependencies": [
+        5,
+        7
+      ],
+      "description": "Add TensorBoard support for real-time training monitoring.",
+      "details": "Integrate TensorBoard to log metrics during training. Provide options to start TensorBoard from the CLI and view training progress in a web interface.",
+      "id": 9,
+      "priority": "low",
+      "status": "pending",
+      "testStrategy": "Verify that TensorBoard logs are created and can be viewed in the web interface during training.",
+      "title": "Enhance Visualization with TensorBoard",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Integrating TensorBoard logging",
+          "description": "Implement TensorBoard logging in the codebase to capture and log training metrics.",
+          "dependencies": [],
+          "details": "Modify the training loop to log metrics such as loss, accuracy, and other relevant statistics to TensorBoard.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Adding CLI options for TensorBoard",
+          "description": "Extend the command-line interface to include options for TensorBoard configuration.",
+          "dependencies": [
+            1
+          ],
+          "details": "Add CLI arguments to specify log directory, port, and other TensorBoard-related settings.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Starting TensorBoard from CLI",
+          "description": "Implement functionality to start TensorBoard from the command-line interface.",
+          "dependencies": [
+            2
+          ],
+          "details": "Ensure the CLI can launch TensorBoard with the specified configurations and log directory.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Verifying web interface",
+          "description": "Test the TensorBoard web interface to ensure metrics are displayed correctly.",
+          "dependencies": [
+            3
+          ],
+          "details": "Access the TensorBoard web interface and verify that all logged metrics are visible and updating in real-time.",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "dependencies": [
+        3,
+        7
+      ],
+      "description": "Add tools to visualize the ViT model architecture.",
+      "details": "Develop functions to visualize the model's attention weights and layer connections. Use matplotlib or similar libraries to generate static visualizations.",
+      "id": 10,
+      "priority": "low",
+      "status": "pending",
+      "testStrategy": "Generate visualizations for a trained model and verify they accurately represent the model structure.",
+      "title": "Implement Model Structure Visualization",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Visualizing attention weights",
+          "description": "Create visualizations to represent the attention weights of the model, showing how different parts of the input are weighted during processing.",
+          "dependencies": [],
+          "details": "Implement code to extract attention weights from the model and generate heatmaps or other visual representations.",
+          "status": "pending"
+        },
+        {
+          "id": 2,
+          "title": "Plotting layer connections",
+          "description": "Generate diagrams or graphs that illustrate the connections between different layers of the model.",
+          "dependencies": [],
+          "details": "Use tools like Graphviz or matplotlib to create visualizations of the model's architecture, showing how layers are interconnected.",
+          "status": "pending"
+        },
+        {
+          "id": 3,
+          "title": "Generating static visualizations",
+          "description": "Produce static images or plots that summarize the model's structure and behavior for documentation or analysis.",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Combine the attention weight and layer connection visualizations into a cohesive set of static images, ensuring clarity and accuracy.",
+          "status": "pending"
+        },
+        {
+          "id": 4,
+          "title": "Testing with trained model",
+          "description": "Validate the visualizations by applying them to a trained model and verifying their accuracy and usefulness.",
+          "dependencies": [
+            3
+          ],
+          "details": "Run the visualization tools on a trained model instance, check for correctness, and refine the visualizations based on feedback.",
+          "status": "pending"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+# Task ID: 3
+# Title: Develop Basic ViT Model Architecture
+# Status: done
+# Dependencies: 1
+# Priority: high
+# Description: Implement the core Vision Transformer model structure.
+# Details:
+Define the ViT model class in PyTorch, including patch embedding, transformer layers, and classification head. Support configurable parameters like patch size, embedding dimension, and number of layers.
+
+# Test Strategy:
+Validate the model architecture by running a forward pass with dummy input and checking the output dimensions.
+
+# Subtasks:
+## 1. Implementing patch embedding [done]
+### Dependencies: None
+### Description: Implement the patch embedding layer to convert input images into a sequence of flattened patches.
+### Details:
+Divide the input image into fixed-size patches, flatten them, and project them into a lower-dimensional space using a linear layer.
+
+## 2. Defining transformer layers [done]
+### Dependencies: 3.1
+### Description: Define the transformer layers that will process the sequence of embedded patches.
+### Details:
+Implement multi-head self-attention and feed-forward layers, including layer normalization and residual connections.
+
+## 3. Adding classification head [done]
+### Dependencies: 3.2
+### Description: Add a classification head to the model for final prediction.
+### Details:
+Attach a linear layer or MLP to the output of the transformer layers to produce class probabilities.
+
+## 4. Making parameters configurable [done]
+### Dependencies: 3.1, 3.2, 3.3
+### Description: Ensure model parameters (e.g., patch size, embedding dimension, number of layers) are configurable.
+### Details:
+Modify the implementation to allow flexible configuration of hyperparameters via arguments or a config file.
+
+## 5. Testing with dummy input [done]
+### Dependencies: 3.1, 3.2, 3.3, 3.4
+### Description: Test the model with dummy input to verify the implementation.
+### Details:
+Generate synthetic input data and run a forward pass to check for errors and validate the model's structure.
+

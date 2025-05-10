@@ -1,0 +1,97 @@
+# Task ID: 4
+# Title: Create Training Loop
+# Status: done
+# Dependencies: 2, 3
+# Priority: high
+# Description: Implement the training and evaluation logic for the ViT model.
+# Details:
+Develop a training script that includes loss calculation, backpropagation, and optimizer steps. Implement evaluation logic to compute accuracy on the test set. Support basic hyperparameters like learning rate and batch size.
+
+# Test Strategy:
+Run a short training session on a small dataset to ensure the training loop works and metrics are recorded correctly.
+
+# Subtasks:
+## 1. Implementing loss calculation [done]
+### Dependencies: None
+### Description: Implement the loss function to measure the difference between predicted and actual values.
+### Details:
+Choose an appropriate loss function (e.g., MSE, Cross-Entropy) and implement it in the training loop.
+<info added on 2025-05-08T09:13:01.579Z>
+The LossCalculator class has been implemented in train.py, supporting multiple loss functions: CrossEntropyLoss for multi-class classification, MSELoss for regression, BCEWithLogitsLoss for binary classification, and Focal Loss for handling class imbalance. The class is designed as a callable with a __call__ method for easy invocation. It includes configurable options such as class weights and reduction methods (mean, sum, or none). Focal Loss, an enhanced version of CrossEntropyLoss, has been specifically implemented to reduce the weight of easy-to-classify samples and increase the weight of hard-to-classify samples using the (1-pt)^gamma factor, where gamma is a tunable parameter.
+</info added on 2025-05-08T09:13:01.579Z>
+
+## 2. Adding backpropagation [done]
+### Dependencies: 4.1
+### Description: Implement backpropagation to compute gradients of the loss with respect to model parameters.
+### Details:
+Ensure gradients are correctly computed and propagated through the network layers.
+<info added on 2025-05-08T13:40:40.707Z>
+BackpropManager class implemented in train.py with the following features:
+1. Gradient computation via compute_gradients method, supporting standard and mixed precision training (using GradScaler)
+2. Gradient clipping via apply_gradient_clipping method with two modes:
+   - Value-based clipping (clip_grad_value_): limits absolute values of gradient elements
+   - Norm-based clipping (clip_grad_norm_): limits L2 norm of gradients
+3. Parameter updates via optimizer_step method executing optimizer's step()
+4. Complete workflow through backward_and_update method combining all steps
+
+The class supports flexible scenarios including standard/mixed precision training and retain_graph for complex multi-backward-pass cases.
+</info added on 2025-05-08T13:40:40.707Z>
+
+## 3. Setting up optimizer steps [done]
+### Dependencies: 4.2
+### Description: Configure the optimizer to update model parameters based on computed gradients.
+### Details:
+Choose an optimizer (e.g., SGD, Adam) and implement the parameter update step.
+<info added on 2025-05-08T14:41:15.335Z>
+Research and design for PyTorch optimizer steps completed. Key findings include: 1) PyTorch offers multiple optimizers (SGD, Adam, AdamW, RMSprop) suited for different scenarios. 2) Optimizer configuration requires attention to learning rate, weight decay, and specific parameters (e.g., momentum, beta values). 3) Learning rate schedulers (StepLR, CosineAnnealingLR) enable dynamic adjustment. 4) Adam/AdamW optimizers perform well for Vision Transformer models. Design plan: 1) Implement OptimizerManager class for initializing and managing optimizers and schedulers. 2) Extend BackpropManager to work with OptimizerManager. 3) Design TrainingLoop class to integrate loss computation, backpropagation, and optimizer steps. Implementation steps: 1) Build OptimizerManager with support for common optimizers and schedulers. 2) Modify BackpropManager for compatibility. 3) Optionally implement TrainingLoop as a high-level wrapper. 4) Add parameter group configuration for varied optimization strategies. 5) Implement checkpointing for resuming training.
+</info added on 2025-05-08T14:41:15.335Z>
+<info added on 2025-05-08T14:44:59.891Z>
+Choose an optimizer (e.g., SGD, Adam) and implement the parameter update step.
+<info added on 2025-05-08T14:41:15.335Z>
+Research and design for PyTorch optimizer steps completed. Key findings include: 1) PyTorch offers multiple optimizers (SGD, Adam, AdamW, RMSprop) suited for different scenarios. 2) Optimizer configuration requires attention to learning rate, weight decay, and specific parameters (e.g., momentum, beta values). 3) Learning rate schedulers (StepLR, CosineAnnealingLR) enable dynamic adjustment. 4) Adam/AdamW optimizers perform well for Vision Transformer models. Design plan: 1) Implement OptimizerManager class for initializing and managing optimizers and schedulers. 2) Extend BackpropManager to work with OptimizerManager. 3) Design TrainingLoop class to integrate loss computation, backpropagation, and optimizer steps. Implementation steps: 1) Build OptimizerManager with support for common optimizers and schedulers. 2) Modify BackpropManager for compatibility. 3) Optionally implement TrainingLoop as a high-level wrapper. 4) Add parameter group configuration for varied optimization strategies. 5) Implement checkpointing for resuming training.
+</info added on 2025-05-08T14:41:15.335Z>
+<info added on 2025-05-08T15:30:00.000Z>
+Implementation of optimizer steps (OptimizerManager) completed with the following features:
+1. Created OptimizerManager class (src/models/optimizer_manager.py) supporting:
+   - Multiple optimizer types: SGD, Adam, AdamW, RMSprop
+   - Multiple learning rate schedulers: StepLR, MultiStepLR, ExponentialLR, CosineAnnealingLR
+   - Parameter group configuration for varied learning rates and weight decay
+   - Checkpoint saving and loading
+2. Modified BackpropManager class (src/models/train.py) to:
+   - Integrate with OptimizerManager
+   - Handle optimizer and optimizer manager objects
+   - Streamline parameter update process
+3. Added TrainingLoop class (src/models/train.py) providing:
+   - Complete training and validation loops
+   - Metric tracking and logging
+   - Learning rate scheduling
+   - Checkpoint saving
+
+The implementation follows PyTorch best practices, offers flexible configuration, and ensures seamless integration with existing LossCalculator and BackpropManager components. These components enable easy configuration and management of optimization for Vision Transformer models.
+</info added on 2025-05-08T15:30:00.000Z>
+</info added on 2025-05-08T14:44:59.891Z>
+
+## 4. Adding evaluation logic [done]
+### Dependencies: 4.1, 4.2, 4.3
+### Description: Implement logic to evaluate model performance on validation or test data.
+### Details:
+Include metrics like accuracy, precision, or recall to assess model performance.
+<info added on 2025-05-09T08:15:10.806Z>
+The evaluation logic has been fully implemented with the following features: 1. An `evaluate` method for assessing model performance on test data, supporting test loss and accuracy calculation, precision, recall, and F1 score computation, confusion matrix generation, and detailed classification reports. It handles both multi-class and binary classification problems and includes an optional confusion matrix visualization. 2. A helper method `_plot_confusion_matrix` for visualizing confusion matrices with clear heatmap representations using seaborn, supporting output path saving. 3. A class method `evaluate_model` providing a simple API for model evaluation on test data, including loading trained model checkpoints, automatic device detection (CPU/GPU), and detailed evaluation report printing. 4. Enhancements to the TrainingLoop class for greater flexibility, such as making optimizer and backpropagation managers optional for evaluation-only runs, adding parameter validation in the train method, and handling optimizer absence during checkpoint saving. The implementation meets all task requirements and offers comprehensive performance metrics.
+</info added on 2025-05-09T08:15:10.806Z>
+
+## 5. Supporting hyperparameters [done]
+### Dependencies: 4.3
+### Description: Add support for tuning hyperparameters such as learning rate, batch size, and epochs.
+### Details:
+Ensure hyperparameters can be easily adjusted and passed to the training loop.
+
+## 6. Testing with small dataset [done]
+### Dependencies: 4.1, 4.2, 4.3, 4.4, 4.5
+### Description: Test the entire training loop with a small dataset to verify correctness and stability.
+### Details:
+Run the training loop on a small dataset and check for expected behavior and outputs.
+<info added on 2025-05-09T08:41:19.926Z>
+Run the training loop on a small dataset and check for expected behavior and outputs. The testing script has been successfully implemented and verified the entire training process. Key functionalities tested include: 1) Creation of a synthetic dataset for testing, eliminating dependency on external data; 2) Verification of training loop components (model, loss calculator, optimizer manager, backpropagation manager); 3) Validation of training loop creation from configuration; 4) Full training test process including training loop and checkpoint saving; 5) Visualization of training loss and accuracy curves; 6) Model evaluation testing with metrics (loss, accuracy, precision, recall, F1 score); 7) Confusion matrix visualization; 8) Testing model loading from checkpoint and re-evaluation. All functionalities tested successfully, confirming the correctness of the training process.
+</info added on 2025-05-09T08:41:19.926Z>
+

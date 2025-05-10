@@ -14,6 +14,7 @@ import os
 from src.models.vit import VisionTransformer
 from src.utils.config import TrainingConfig
 from src.models.optimizer_manager import OptimizerManager
+from src.utils.metrics_logger import MetricsLogger
 
 class LossCalculator:
     """
@@ -217,6 +218,7 @@ class TrainingLoop:
         optimizer_manager (Optional[OptimizerManager]): 优化器管理器，仅做评估时可为None
         backprop_manager (Optional[BackpropManager]): 反向传播管理器，仅做评估时可为None
         device (torch.device): 运行设备
+        metrics_logger (Optional[MetricsLogger]): 指标记录器，用于记录训练和评估指标
     """
     def __init__(
         self,
@@ -224,13 +226,15 @@ class TrainingLoop:
         loss_calculator: LossCalculator,
         optimizer_manager: Optional[OptimizerManager] = None,
         backprop_manager: Optional[BackpropManager] = None,
-        device: torch.device = torch.device('cpu')
+        device: torch.device = torch.device('cpu'),
+        metrics_logger: Optional[MetricsLogger] = None
     ):
         self.model = model
         self.loss_calculator = loss_calculator
         self.optimizer_manager = optimizer_manager
         self.backprop_manager = backprop_manager
         self.device = device
+        self.metrics_logger = metrics_logger
         
         # 将模型移至指定设备
         self.model.to(self.device)
@@ -294,13 +298,22 @@ class TrainingLoop:
             grad_scaler=grad_scaler
         )
         
+        # 创建指标记录器
+        metrics_logger = MetricsLogger(
+            save_dir=config.metrics_dir,
+            experiment_name=config.metrics_experiment_name,
+            save_format=config.metrics_format,
+            save_freq=config.metrics_save_freq
+        )
+        
         # 创建训练循环
         return cls(
             model=model,
             loss_calculator=loss_calculator,
             optimizer_manager=optimizer_manager,
             backprop_manager=backprop_manager,
-            device=device
+            device=device,
+            metrics_logger=metrics_logger
         )
 
     def train_epoch(
@@ -356,11 +369,18 @@ class TrainingLoop:
             self.optimizer_manager.scheduler_step()
             learning_rate = self.optimizer_manager.get_lr()
         
-        return {
+        # 记录训练指标
+        train_metrics = {
             'loss': avg_loss,
             'accuracy': accuracy,
             'learning_rate': learning_rate
         }
+        
+        # 如果有指标记录器，记录训练指标
+        if self.metrics_logger is not None:
+            self.metrics_logger.log_train_metrics(train_metrics, epoch)
+        
+        return train_metrics
     
     def validate(
         self, 
@@ -475,6 +495,10 @@ class TrainingLoop:
                 history['val_loss'].append(val_metrics['val_loss'])
                 history['val_accuracy'].append(val_metrics['val_accuracy'])
                 
+                # 记录验证指标到指标记录器
+                if self.metrics_logger is not None:
+                    self.metrics_logger.log_eval_metrics(val_metrics, epoch)
+                
                 # 早停策略
                 if early_stopping:
                     val_loss = val_metrics['val_loss']
@@ -545,6 +569,18 @@ class TrainingLoop:
                 
                 torch.save(checkpoint, checkpoint_file)
                 print(f"检查点已保存到: {checkpoint_file}")
+        
+        # 训练结束后，如果有指标记录器，自动绘制指标曲线
+        if self.metrics_logger is not None and hasattr(self.metrics_logger, 'plot_metrics'):
+            # 确定要绘制的指标
+            metrics_to_plot = ['loss', 'accuracy']
+            # 尝试绘制指标曲线
+            try:
+                output_dir = checkpoint_dir if checkpoint_dir else 'metrics_plots'
+                self.metrics_logger.plot_metrics(metrics_to_plot, output_dir=output_dir)
+                print(f"指标曲线已保存到: {output_dir}")
+            except Exception as e:
+                print(f"绘制指标曲线时出错: {str(e)}")
         
         return history
 
@@ -633,7 +669,8 @@ class TrainingLoop:
         if visualize_confusion_matrix:
             self._plot_confusion_matrix(conf_matrix, num_classes, output_path)
         
-        return {
+        # 整理评估指标
+        eval_metrics = {
             'test_loss': avg_loss,
             'test_accuracy': accuracy,
             'precision': precision * 100.0,  # 转换为百分比
@@ -642,6 +679,15 @@ class TrainingLoop:
             'confusion_matrix': conf_matrix,
             'classification_report': class_report
         }
+        
+        # 如果有指标记录器，记录评估指标
+        if self.metrics_logger is not None:
+            # 创建一个指标副本，不包含复杂对象（如numpy数组和字符串）
+            metrics_for_logging = {k: v for k, v in eval_metrics.items()
+                                  if not isinstance(v, (np.ndarray, str))}
+            self.metrics_logger.log_eval_metrics(metrics_for_logging, 0)  # 使用epoch=0表示最终测试
+        
+        return eval_metrics
     
     def _plot_confusion_matrix(
         self,
@@ -724,6 +770,9 @@ class TrainingLoop:
         # 创建损失计算器
         loss_calculator = LossCalculator(loss_type=loss_type)
         
+        # 创建指标记录器
+        metrics_logger = MetricsLogger(save_dir='metrics', experiment_name='model_evaluation')
+        
         # 创建空的优化器管理器和反向传播管理器（评估时不需要）
         optimizer_manager = None
         backprop_manager = None
@@ -734,7 +783,8 @@ class TrainingLoop:
             loss_calculator=loss_calculator,
             optimizer_manager=optimizer_manager,
             backprop_manager=backprop_manager,
-            device=device
+            device=device,
+            metrics_logger=metrics_logger
         )
         
         # 评估模型

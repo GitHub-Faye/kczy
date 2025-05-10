@@ -313,6 +313,12 @@ class TrainingConfig:
         device (str): 训练设备，'cuda', 'cpu' 或 'auto'（自动选择）
         num_workers (int): 数据加载器的工作进程数
         pin_memory (bool): 数据加载器是否使用锁页内存
+        metrics_dir (str): 指标保存目录
+        metrics_format (str): 指标保存格式，支持 'csv', 'json'
+        metrics_save_freq (int): 指标保存频率（每多少个epoch保存一次）
+        metrics_experiment_name (Optional[str]): 指标实验名称，用于生成文件名
+        plot_metrics (bool): 是否在训练结束后自动绘制指标曲线
+        plot_metrics_dir (Optional[str]): 指标曲线保存目录
     """
     batch_size: int = 32
     num_epochs: int = 100
@@ -337,6 +343,13 @@ class TrainingConfig:
     num_workers: int = 4
     pin_memory: bool = True
     optimizer_params: Dict = field(default_factory=dict)
+    # 新增指标记录相关参数
+    metrics_dir: str = 'metrics'
+    metrics_format: str = 'csv'
+    metrics_save_freq: int = 1
+    metrics_experiment_name: Optional[str] = None
+    plot_metrics: bool = True
+    plot_metrics_dir: Optional[str] = None
     
     def __post_init__(self):
         """初始化后进行验证"""
@@ -418,6 +431,15 @@ class TrainingConfig:
         # 验证工作进程数
         if self.num_workers < 0:
             raise ValueError(f"工作进程数必须为非负数: {self.num_workers}")
+        
+        # 验证指标保存格式
+        valid_metrics_formats = ['csv', 'json']
+        if self.metrics_format.lower() not in valid_metrics_formats:
+            raise ValueError(f"不支持的指标保存格式: {self.metrics_format}. 支持的格式: {valid_metrics_formats}")
+        
+        # 验证指标保存频率
+        if self.metrics_save_freq <= 0:
+            raise ValueError(f"指标保存频率必须为正数: {self.metrics_save_freq}")
             
         return True
     

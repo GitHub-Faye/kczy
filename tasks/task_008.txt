@@ -1,0 +1,37 @@
+# Task ID: 8
+# Title: Build Command-Line Interface
+# Status: pending
+# Dependencies: 1, 4
+# Priority: medium
+# Description: Develop a CLI for configuring and launching training.
+# Details:
+Use argparse to create a command-line interface for setting hyperparameters, specifying datasets, and starting training. Include help messages and default values.
+
+# Test Strategy:
+Test the CLI with various arguments to ensure correct configuration and training launch.
+
+# Subtasks:
+## 1. Setting up argparse [pending]
+### Dependencies: None
+### Description: Initialize the argparse module to handle command-line arguments.
+### Details:
+Create a basic argparse setup including the parser object and basic configurations like description and help messages.
+
+## 2. Adding hyperparameter arguments [pending]
+### Dependencies: 8.1
+### Description: Add arguments for hyperparameters to the CLI.
+### Details:
+Define hyperparameters such as learning rate, batch size, and number of epochs as command-line arguments with appropriate types and default values.
+
+## 3. Adding dataset specification [pending]
+### Dependencies: 8.1
+### Description: Add arguments to specify the dataset and related configurations.
+### Details:
+Include arguments for dataset paths, splits (train/validation/test), and any dataset-specific parameters like augmentation options.
+
+## 4. Testing CLI with various arguments [pending]
+### Dependencies: 8.1, 8.2, 8.3
+### Description: Test the CLI with different combinations of arguments to ensure correctness.
+### Details:
+Run the CLI with various argument combinations, including edge cases, to verify that all arguments are parsed correctly and the program behaves as expected.
+

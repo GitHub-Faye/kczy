@@ -1,0 +1,104 @@
+# Task ID: 5
+# Title: Implement Performance Metrics Recording
+# Status: done
+# Dependencies: 4
+# Priority: medium
+# Description: Set up comprehensive logging for training and test metrics with visualization capabilities.
+# Details:
+Implement functionality to record, store, analyze and visualize loss, accuracy and other metrics during training and evaluation. Support flexible configuration and provide various output formats (CSV/JSON) with visualization options.
+
+# Test Strategy:
+Verify that all metric recording, storage, retrieval, visualization and analysis features work correctly through unit tests and simulated training sessions.
+
+# Subtasks:
+## 1. Recording training metrics [done]
+### Dependencies: None
+### Description: Implement functionality to record training metrics such as loss, accuracy, and other relevant performance indicators during the training process.
+### Details:
+Ensure metrics are captured at specified intervals (e.g., per epoch or batch) and stored temporarily for further processing.
+<info added on 2025-05-09T12:05:21.046Z>
+Implementation plan for training metrics recording:
+1. Create a new `MetricsLogger` class in `src/utils/metrics_logger.py` to handle logging, saving, and loading of training/evaluation metrics in CSV and JSON formats.
+2. Integrate `MetricsLogger` into the existing `TrainingLoop` class in `src/models/train.py` to enable automatic metric recording during training.
+3. Enhance `TrainingLoop.train` method to support metric saving functionality, calling logging methods at key points (e.g., after each epoch).
+4. Ensure metrics include timestamps for analysis and maintain consistent data format.
+5. Provide flexible configuration options (save frequency, format selection) without disrupting existing training flow.
+6. Add utility methods for loading saved metrics and generating visualizations.
+</info added on 2025-05-09T12:05:21.046Z>
+
+## 2. Saving metrics to structured format [done]
+### Dependencies: 5.1
+### Description: Convert the recorded metrics into structured formats (JSON, CSV) with comprehensive storage and retrieval capabilities.
+### Details:
+Implement advanced storage features including:
+- Flexible configuration of save directory, experiment name and format
+- Automatic directory creation
+- Multiple save formats (CSV/JSON)
+- Methods for loading training/evaluation metrics
+- Consolidated export of all metrics to single file
+
+<info added on 2025-05-10T00:18:15.207Z>
+Implemented functionality to save metrics in structured formats (JSON and CSV) within the `MetricsLogger` class. Methods include `_save_json()` and `_save_csv()` for saving metrics with epoch, value, and timestamp. Auto-save feature triggers at specified intervals, saving training metrics as `{experiment_name}_train_metrics.{format}` and evaluation metrics as `{experiment_name}_eval_metrics.{format}`. Loading functions (`load_train_metrics()`, `load_eval_metrics()`) support retrieval from saved files, with internal `_load_json()` and `_load_csv()` methods. Added `export_metrics()` to consolidate all metrics into a single file. Standardized data structures ensure consistency and readability, with tested save/load functionality.
+</info added on 2025-05-10T00:18:15.207Z>
+
+## 3. Implement visualization and analysis features [done]
+### Dependencies: 5.1, 5.2
+### Description: Add comprehensive visualization and analysis capabilities for recorded metrics.
+### Details:
+Implement the following visualization and analysis features:
+- plot_metric(): Draw single metric curves
+- plot_metrics(): Draw multiple metric comparisons
+- summary(): Generate statistical summaries
+- visualize_all_metrics(): Create comprehensive reports
+- get_best_epoch(): Identify optimal model performance
+
+Integrate these features with the existing MetricsLogger class and ensure they work with both CSV and JSON formats.
+
+## 4. Complete system integration [done]
+### Dependencies: 5.1, 5.2, 5.3
+### Description: Fully integrate metrics recording into the training pipeline with configuration support.
+### Details:
+Final integration tasks:
+1. Update TrainingConfig class with metrics recording parameters
+2. Complete integration of MetricsLogger into TrainingLoop
+3. Implement automatic visualization generation post-training
+4. Ensure all configuration options are properly exposed
+5. Verify end-to-end functionality through simulated training
+
+## 5. Comprehensive testing and validation [done]
+### Dependencies: 5.1, 5.2, 5.3, 5.4
+### Description: Verify all metric recording, storage, visualization and analysis features.
+### Details:
+Testing strategy:
+1. Expand existing test suite with visualization and analysis tests
+2. Add integration tests for full training pipeline
+3. Verify configuration options work as expected
+4. Test edge cases (empty metrics, invalid formats, etc.)
+5. Perform manual verification through simulated training sessions
+
+<info added on 2025-05-10T00:19:07.457Z>
+Completed metric recording verification work:
+1. Created comprehensive unit test file `tests/test_metrics_logger.py` with the following tests:
+   - `test_init`: Verify `MetricsLogger` initialization correctly sets instance properties and file paths
+   - `test_log_train_metrics`: Verify training metric logging functionality
+   - `test_log_eval_metrics`: Verify evaluation metric logging functionality
+   - `test_save_load_csv`: Verify CSV format saving and loading
+   - `test_save_load_json`: Verify JSON format saving and loading
+   - `test_plot_metric`: Verify metric visualization
+   - `test_summary`: Verify metric summary generation
+
+2. Implemented `simulate_training()` function for manual testing, simulating a full training process:
+   - Simulated 50 training epochs
+   - Recorded loss, accuracy, learning rate, and other metrics
+   - Generated visualizations
+   - Produced summary reports
+
+3. Test results confirmed:
+   - All 7 unit test cases passed
+   - Simulated training successfully recorded all metrics
+   - Visualizations were generated correctly
+   - Metric summaries displayed expected statistical results
+
+Testing confirms the `MetricsLogger` class accurately records, saves, loads, and visualizes training/evaluation metrics, meeting task requirements.
+</info added on 2025-05-10T00:19:07.457Z>
+
