@@ -21,6 +21,8 @@ kczy/
 ├── models/             # 训练好的模型保存目录
 ├── notebooks/          # Jupyter笔记本，用于实验和演示
 ├── scripts/            # 实用脚本，如训练脚本和演示脚本
+├── temp_metrics/       # 临时指标存储目录
+│   └── plots/          # 指标可视化图表
 ├── tests/              # 测试代码
 ├── tasks/              # 任务管理文件
 └── requirements.txt    # 项目依赖
@@ -48,6 +50,7 @@ kczy/
 #### 工具函数 (`src/utils/`)
 - `__init__.py` - 工具模块初始化文件
 - `config.py` - 全局配置参数定义
+- `metrics_logger.py` - 性能指标记录和分析工具
 
 #### 可视化模块 (`src/visualization/`)
 - 用于实现模型性能和结构的可视化功能（待实现）
@@ -62,6 +65,11 @@ kczy/
 
 ### 笔记本目录 (`notebooks/`)
 - 用于存放Jupyter笔记本，进行实验和演示
+
+### 临时指标目录 (`temp_metrics/`)
+- `plots/` - 存放指标可视化图表
+- `simulation_train_metrics.csv` - 模拟训练指标数据
+- `simulation_eval_metrics.csv` - 模拟评估指标数据
 
 ### 脚本目录 (`scripts/`)
 - `train_with_config.py` - 使用配置文件进行模型训练
@@ -79,6 +87,7 @@ kczy/
 - `test_augmentation.py` - 数据增强测试
 - `test_preprocessing.py` - 数据预处理测试
 - `test_data_loader.py` - 数据加载器测试
+- `test_metrics_logger.py` - 性能指标记录工具测试
 - `sample_image.png` - 测试用图像
 - `batch_images.png` - 测试用批量图像
 - `outputs/` - 测试输出目录
@@ -105,14 +114,19 @@ kczy/
 2. 模型训练流程：
    - 数据加载器 → `src/models/train.py` (使用 `src/models/vit.py` 定义的模型) → 训练结果 → 模型保存到 `models/` 目录
    - 优化过程由 `src/models/optimizer_manager.py` 管理
+   - 训练和评估指标由 `src/utils/metrics_logger.py` 记录和分析
    - 配置由 `src/utils/config.py` 控制
 
-3. 测试流程：
+3. 性能指标流程：
+   - 训练循环 → `src/utils/metrics_logger.py` → 指标数据保存到CSV/JSON文件
+   - 指标数据 → `src/utils/metrics_logger.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
+
+4. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
 
 ### 配置依赖关系
-- `src/utils/config.py` 提供全局配置
+- `src/utils/config.py` 提供全局配置，包括训练参数和指标记录选项
 - `src/data/config.py` 提供数据处理特定配置
 - 脚本通过导入这些配置模块访问参数
 
@@ -130,6 +144,7 @@ kczy/
 3. **类命名**
    - 使用大驼峰命名法(PascalCase)，如 `CustomDataset`
    - 模型类以功能命名，如 `ViT`
+   - 工具类以功能命名，如 `MetricsLogger`
 
 4. **函数命名**
    - 使用小写字母和下划线命名法，如 `preprocess_image`
