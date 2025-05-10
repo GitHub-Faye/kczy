@@ -348,8 +348,8 @@
           "title": "Saving model state",
           "description": "Implement functionality to save the model's state (weights, architecture, etc.) in a compatible format.",
           "dependencies": [],
-          "details": "Ensure the saved state includes all necessary components for reloading the model correctly, such as layer weights and configurations.",
-          "status": "pending"
+          "details": "Ensure the saved state includes all necessary components for reloading the model correctly, such as layer weights and configurations.\n<info added on 2025-05-10T02:51:14.890Z>\nImplementation completed with the following features:\n1. Added methods to VisionTransformer class: save_model(), load_model(), save_weights(), load_weights(), export_to_onnx()\n2. Created model_utils.py module with general model saving/loading functions: save_model(), load_model(), export_to_onnx(), save_checkpoint(), load_checkpoint(), get_model_info()\n3. Updated TrainingLoop checkpoint saving logic to use new functionality\n4. Created test file test_model_saving.py to verify all saving/loading functionality\n\nAll implementations are tested and confirmed working, supporting both PyTorch native format and ONNX format for different use cases.\n</info added on 2025-05-10T02:51:14.890Z>",
+          "status": "done"
         },
         {
           "id": 2,

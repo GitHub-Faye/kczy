@@ -15,6 +15,7 @@ from src.models.vit import VisionTransformer
 from src.utils.config import TrainingConfig
 from src.models.optimizer_manager import OptimizerManager
 from src.utils.metrics_logger import MetricsLogger
+from src.models.model_utils import save_checkpoint, save_model
 
 class LossCalculator:
     """
@@ -468,10 +469,6 @@ class TrainingLoop:
             'val_accuracy': []
         }
         
-        # 创建检查点目录
-        if checkpoint_dir and not os.path.exists(checkpoint_dir):
-            os.makedirs(checkpoint_dir)
-        
         # 早停策略相关变量
         best_val_loss = float('inf')
         best_val_accuracy = 0.0
@@ -542,32 +539,64 @@ class TrainingLoop:
             
             # 保存检查点
             if checkpoint_path:
-                checkpoint = {
-                    'epoch': epoch + 1,
-                    'model_state_dict': self.model.state_dict(),
-                    'history': history
-                }
-                
-                # 添加优化器状态（如果有）
+                # 使用新的保存检查点功能
                 if self.optimizer_manager is not None:
-                    checkpoint['optimizer_state_dict'] = self.optimizer_manager.state_dict()
-                
-                torch.save(checkpoint, checkpoint_path)
+                    optimizer_state = self.optimizer_manager.state_dict()
+                    save_checkpoint(
+                        model=self.model,
+                        optimizer_state=optimizer_state,
+                        file_path=checkpoint_path,
+                        epoch=epoch + 1,
+                        train_history=history,
+                        metadata={
+                            'date': time.strftime("%Y-%m-%d %H:%M:%S"),
+                            'device': str(self.device)
+                        }
+                    )
+                else:
+                    # 如果没有优化器管理器，只保存模型状态
+                    save_model(
+                        model=self.model,
+                        file_path=checkpoint_path,
+                        metadata={
+                            'epoch': epoch + 1,
+                            'history': history,
+                            'date': time.strftime("%Y-%m-%d %H:%M:%S"),
+                            'device': str(self.device)
+                        }
+                    )
             
             # 如果提供了检查点目录，每checkpoint_freq个epoch保存一个检查点
             if checkpoint_dir and (epoch + 1) % checkpoint_freq == 0:
+                os.makedirs(checkpoint_dir, exist_ok=True)
                 checkpoint_file = os.path.join(checkpoint_dir, f"checkpoint_epoch_{epoch+1}.pt")
-                checkpoint = {
-                    'epoch': epoch + 1,
-                    'model_state_dict': self.model.state_dict(),
-                    'history': history
-                }
                 
-                # 添加优化器状态（如果有）
+                # 使用新的保存检查点功能
                 if self.optimizer_manager is not None:
-                    checkpoint['optimizer_state_dict'] = self.optimizer_manager.state_dict()
-                
-                torch.save(checkpoint, checkpoint_file)
+                    optimizer_state = self.optimizer_manager.state_dict()
+                    save_checkpoint(
+                        model=self.model,
+                        optimizer_state=optimizer_state,
+                        file_path=checkpoint_file,
+                        epoch=epoch + 1,
+                        train_history=history,
+                        metadata={
+                            'date': time.strftime("%Y-%m-%d %H:%M:%S"),
+                            'device': str(self.device)
+                        }
+                    )
+                else:
+                    # 如果没有优化器管理器，只保存模型状态
+                    save_model(
+                        model=self.model,
+                        file_path=checkpoint_file,
+                        metadata={
+                            'epoch': epoch + 1,
+                            'history': history,
+                            'date': time.strftime("%Y-%m-%d %H:%M:%S"),
+                            'device': str(self.device)
+                        }
+                    )
                 print(f"检查点已保存到: {checkpoint_file}")
         
         # 训练结束后，如果有指标记录器，自动绘制指标曲线

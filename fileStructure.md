@@ -42,10 +42,11 @@ kczy/
 - `augmentation.py` - 数据增强方法实现
 
 #### 模型模块 (`src/models/`)
-- `__init__.py` - 模型模块初始化文件
-- `vit.py` - Vision Transformer模型定义
-- `train.py` - 模型训练循环实现
+- `__init__.py` - 模型模块初始化文件，导出模型类和模型工具函数
+- `vit.py` - Vision Transformer模型定义，包含模型保存/加载功能
+- `train.py` - 模型训练循环实现，支持检查点保存和恢复
 - `optimizer_manager.py` - 优化器管理类
+- `model_utils.py` - 模型保存、加载和转换工具函数，支持多种格式和用例
 
 #### 工具函数 (`src/utils/`)
 - `__init__.py` - 工具模块初始化文件
@@ -62,6 +63,9 @@ kczy/
 
 ### 模型目录 (`models/`)
 - 用于存储训练好的模型权重和配置
+- `*.pt`/`*.pth` - PyTorch格式的模型权重和配置
+- `*.onnx` - ONNX格式的导出模型
+- `*_config.json` - 模型配置文件
 
 ### 笔记本目录 (`notebooks/`)
 - 用于存放Jupyter笔记本，进行实验和演示
@@ -88,6 +92,7 @@ kczy/
 - `test_preprocessing.py` - 数据预处理测试
 - `test_data_loader.py` - 数据加载器测试
 - `test_metrics_logger.py` - 性能指标记录工具测试
+- `test_model_saving.py` - 模型保存和加载功能测试
 - `sample_image.png` - 测试用图像
 - `batch_images.png` - 测试用批量图像
 - `outputs/` - 测试输出目录
@@ -116,12 +121,18 @@ kczy/
    - 优化过程由 `src/models/optimizer_manager.py` 管理
    - 训练和评估指标由 `src/utils/metrics_logger.py` 记录和分析
    - 配置由 `src/utils/config.py` 控制
+   - 模型保存和加载由 `src/models/model_utils.py` 提供支持
 
-3. 性能指标流程：
+3. 模型保存和加载流程:
+   - 训练完成或检查点 → `src/models/model_utils.py` 保存功能 → 模型文件存储在 `models/` 目录
+   - 模型文件 → `src/models/model_utils.py` 加载功能 → 恢复模型用于推理或继续训练
+   - 支持多种格式：原生PyTorch模型（.pt/.pth）和ONNX格式（.onnx）
+
+4. 性能指标流程：
    - 训练循环 → `src/utils/metrics_logger.py` → 指标数据保存到CSV/JSON文件
    - 指标数据 → `src/utils/metrics_logger.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
 
-4. 测试流程：
+5. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
 

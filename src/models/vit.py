@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from src.utils.config import ViTConfig
+import os
 
 class PatchEmbedding(nn.Module):
     """
@@ -532,6 +533,189 @@ class VisionTransformer(nn.Module):
             Dict[str, Any]: 模型配置字典
         """
         return self.config.to_dict()
+    
+    def save_model(self, file_path: str, save_optimizer: bool = False, optimizer_state: Optional[Dict] = None) -> None:
+        """
+        保存完整模型（包括结构和权重）
+        
+        参数:
+            file_path (str): 保存路径（.pt或.pth文件）
+            save_optimizer (bool): 是否保存优化器状态
+            optimizer_state (Optional[Dict]): 优化器状态字典（当save_optimizer为True时需要）
+            
+        返回:
+            None
+        """
+        # 创建保存目录（如果不存在）
+        os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
+        
+        # 构建保存字典
+        checkpoint = {
+            'model_state_dict': self.state_dict(),
+            'config': self.config.to_dict(),
+            'model_type': 'VisionTransformer',
+            'version': '1.0.0'  # 版本信息用于未来的兼容性检查
+        }
+        
+        # 如果需要，添加优化器状态
+        if save_optimizer and optimizer_state is not None:
+            checkpoint['optimizer_state_dict'] = optimizer_state
+            
+        # 保存模型
+        torch.save(checkpoint, file_path)
+        print(f"模型已保存到: {file_path}")
+        
+        # 额外保存配置文件（便于后续检查）
+        config_path = os.path.splitext(file_path)[0] + '_config.json'
+        self.save_config(config_path)
+    
+    @classmethod
+    def load_model(cls, file_path: str, device: Optional[torch.device] = None) -> Tuple['VisionTransformer', Optional[Dict]]:
+        """
+        从文件加载模型
+        
+        参数:
+            file_path (str): 模型文件路径
+            device (Optional[torch.device]): 加载模型的设备
+            
+        返回:
+            Tuple[VisionTransformer, Optional[Dict]]: 加载的模型和可选的优化器状态
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"模型文件不存在: {file_path}")
+        
+        # 设置加载设备
+        map_location = device if device is not None else torch.device('cpu')
+        
+        # 加载检查点
+        checkpoint = torch.load(file_path, map_location=map_location)
+        
+        # 兼容性检查
+        if 'model_type' not in checkpoint or checkpoint['model_type'] != 'VisionTransformer':
+            print("警告: 加载的模型可能不是VisionTransformer或格式不兼容")
+        
+        # 从检查点获取配置
+        if 'config' in checkpoint:
+            config = ViTConfig.from_dict(checkpoint['config'])
+        else:
+            # 尝试寻找配置文件
+            config_path = os.path.splitext(file_path)[0] + '_config.json'
+            if os.path.exists(config_path):
+                config = ViTConfig.load(config_path)
+            else:
+                raise ValueError(f"无法找到模型配置，请提供有效的检查点或配置文件: {file_path}")
+        
+        # 创建模型
+        model = cls.from_config(config)
+        
+        # 加载模型权重
+        model.load_state_dict(checkpoint['model_state_dict'])
+        
+        # 将模型移动到指定设备
+        model.to(device if device is not None else torch.device('cpu'))
+        
+        # 返回模型和可能的优化器状态
+        optimizer_state = checkpoint.get('optimizer_state_dict', None)
+        
+        return model, optimizer_state
+    
+    def save_weights(self, file_path: str) -> None:
+        """
+        仅保存模型权重
+        
+        参数:
+            file_path (str): 保存路径
+            
+        返回:
+            None
+        """
+        # 创建保存目录（如果不存在）
+        os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
+        
+        # 直接保存模型状态字典
+        torch.save(self.state_dict(), file_path)
+        print(f"模型权重已保存到: {file_path}")
+    
+    def load_weights(self, file_path: str, strict: bool = True) -> None:
+        """
+        加载模型权重
+        
+        参数:
+            file_path (str): 权重文件路径
+            strict (bool): 是否执行严格加载（所有权重必须匹配）
+            
+        返回:
+            None
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"权重文件不存在: {file_path}")
+        
+        # 加载权重
+        weights = torch.load(file_path, map_location=next(self.parameters()).device)
+        
+        # 权重可能是状态字典或完整的检查点
+        if isinstance(weights, dict) and 'model_state_dict' in weights:
+            # 从完整检查点中提取模型状态
+            weights = weights['model_state_dict']
+        
+        # 加载权重到模型
+        self.load_state_dict(weights, strict=strict)
+        print(f"模型权重已从 {file_path} 加载")
+    
+    def export_to_onnx(self, file_path: str, input_shape: Optional[Tuple] = None, 
+                      dynamic_axes: Optional[Dict] = None, export_params: bool = True,
+                      opset_version: int = 11) -> None:
+        """
+        将模型导出为ONNX格式
+        
+        参数:
+            file_path (str): 保存路径（.onnx文件）
+            input_shape (Optional[Tuple]): 输入形状，默认为(1, in_channels, img_size, img_size)
+            dynamic_axes (Optional[Dict]): 动态轴信息
+            export_params (bool): 是否导出参数
+            opset_version (int): ONNX操作集版本
+            
+        返回:
+            None
+        """
+        # 创建保存目录（如果不存在）
+        os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
+        
+        # 设置模型为评估模式
+        self.eval()
+        
+        # 默认输入形状
+        if input_shape is None:
+            input_shape = (1, self.config.in_channels, self.config.img_size, self.config.img_size)
+            
+        # 默认动态轴 - 使批次大小可变
+        if dynamic_axes is None:
+            dynamic_axes = {'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
+            
+        # 创建示例输入
+        dummy_input = torch.randn(input_shape, device=next(self.parameters()).device)
+        
+        # 导出为ONNX
+        torch.onnx.export(
+            self,                        # 要导出的模型
+            dummy_input,                 # 示例输入
+            file_path,                   # 输出文件
+            export_params=export_params, # 存储训练过的参数权重
+            opset_version=opset_version, # ONNX版本
+            input_names=['input'],       # 输入名称
+            output_names=['output'],     # 输出名称
+            dynamic_axes=dynamic_axes,   # 动态轴
+            verbose=False
+        )
+            
+        print(f"模型已导出为ONNX格式: {file_path}")
+        
+        # 尝试保存配置文件
+        try:
+            config_path = os.path.splitext(file_path)[0] + '_config.json'
+            self.save_config(config_path)
+        except Exception as e:
+            print(f"保存配置文件时出错: {str(e)}")
     
     @classmethod
     def create_tiny(cls, num_classes: int = 1000) -> 'VisionTransformer':
