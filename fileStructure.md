@@ -54,6 +54,7 @@ kczy/
 - `__init__.py` - 工具模块初始化文件
 - `config.py` - 全局配置参数定义
 - `metrics_logger.py` - 性能指标记录和分析工具
+- `cli.py` - 命令行接口实现，包含参数解析和处理功能，支持从配置文件加载和组织化参数显示
 
 #### 可视化模块 (`src/visualization/`)
 - `__init__.py` - 可视化模块初始化文件，导出指标绘图功能
@@ -90,11 +91,14 @@ kczy/
 - `simulation_eval_metrics.csv` - 模拟评估指标数据
 
 ### 脚本目录 (`scripts/`)
+- `train.py` - 主训练脚本，使用命令行参数配置训练过程
 - `train_with_config.py` - 使用配置文件进行模型训练
 - `test_training_loop.py` - 测试训练循环
+- `test_cli.py` - 命令行参数解析功能测试脚本
 - `demo_custom_dataset.py` - 自定义数据集演示
 - `demo_augmentation.py` - 数据增强演示
 - `demo_onnx_export.py` - ONNX导出功能演示脚本，展示模型导出、验证和推理性能比较
+- `example_config.json` - 示例配置文件，用于CLI测试
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
 
@@ -139,20 +143,26 @@ kczy/
    - 配置由 `src/utils/config.py` 控制
    - 模型保存和加载由 `src/models/model_utils.py` 提供支持
 
-3. 模型保存和加载流程:
+3. 命令行接口流程：
+   - 用户提供命令行参数 → `src/utils/cli.py` 解析参数 → 转换为配置对象 → 用于训练和评估
+   - 配置文件通过 `src/utils/cli.py` 的 `load_config()` 函数加载，与命令行参数结合
+   - 命令行参数覆盖配置文件中的参数，提供灵活配置能力
+   - `scripts/train.py` 是命令行接口的主要入口点，实现了参数解析和配置创建
+
+4. 模型保存和加载流程:
    - 训练完成或检查点 → `src/models/model_utils.py` 保存功能 → 模型文件存储在 `models/` 目录
    - 模型文件 → `src/models/model_utils.py` 加载功能 → 恢复模型用于推理或继续训练
    - 支持多种格式：原生PyTorch模型（.pt/.pth）和ONNX格式（.onnx）
    - 优化器状态保存 → `optimizer_manager.state_dict()` → 通过`save_checkpoint()`保存到检查点文件
    - 优化器状态恢复 → 从检查点文件读取 → `optimizer_manager.load_state_dict()` → 恢复训练状态
 
-4. ONNX模型导出和推理流程:
+5. ONNX模型导出和推理流程:
    - PyTorch模型 → `export_to_onnx()` → ONNX格式模型文件（.onnx）
    - ONNX模型文件 → `load_onnx_model()` → ONNX Runtime会话 → `onnx_inference()` → 推理结果
    - ONNX模型优化: 原始ONNX模型 → `simplify_onnx_model()`/`optimize_onnx_model()` → 优化后的ONNX模型
    - ONNX模型验证: PyTorch输出 vs ONNX输出 → `verify_onnx_model()` → 验证结果
 
-5. 性能指标可视化流程：
+6. 性能指标可视化流程：
    - 训练循环 → `src/utils/metrics_logger.py` → 指标数据保存到CSV/JSON文件
    - 指标数据 → `src/visualization/metrics_plots.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
    - 指标可视化支持通用工具和专用功能：
@@ -161,7 +171,7 @@ kczy/
      - 准确率曲线可视化: `plot_accuracy()` 生成训练和验证准确率曲线，支持百分比显示和元数据
      - 多指标可视化: `plot_training_history()` 生成多种指标历史曲线，支持批量保存
 
-6. 测试流程：
+7. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
    - 指标可视化测试: `test_plot_save.py` 测试图表保存功能，包括时间戳和元数据支持
@@ -169,7 +179,8 @@ kczy/
 ### 配置依赖关系
 - `src/utils/config.py` 提供全局配置，包括训练参数和指标记录选项
 - `src/data/config.py` 提供数据处理特定配置
-- 脚本通过导入这些配置模块访问参数
+- `src/utils/cli.py` 提供命令行参数解析和配置文件加载功能
+- 脚本通过导入这些配置模块或CLI模块访问参数
 
 ## 命名约定
 

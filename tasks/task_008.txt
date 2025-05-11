@@ -11,11 +11,20 @@ Use argparse to create a command-line interface for setting hyperparameters, spe
 Test the CLI with various arguments to ensure correct configuration and training launch.
 
 # Subtasks:
-## 1. Setting up argparse [pending]
+## 1. Setting up argparse [done]
 ### Dependencies: None
 ### Description: Initialize the argparse module to handle command-line arguments.
 ### Details:
 Create a basic argparse setup including the parser object and basic configurations like description and help messages.
+<info added on 2025-05-11T08:43:40.256Z>
+Completed basic argparse setup with the following implementations:
+1. Created `src/utils/cli.py` with functions: `create_parser()` for parser configuration, `parse_args()` for argument parsing, `load_config()` for config file loading, and `print_args_info()` for argument display.
+2. Updated `src/utils/__init__.py` to export CLI functions.
+3. Developed test tools: `scripts/test_cli.py` for CLI testing and `scripts/example_config.json` as a sample config file.
+4. Created an example entry script `scripts/train.py` demonstrating CLI usage with parameter parsing, config creation, and environment setup.
+
+Parameters are organized into groups: general, dataset, model, training, logging, and checkpoint. CLI arguments integrate with the existing config system, allowing config file parameters to be overridden by command-line arguments. Testing confirmed proper functionality, laying the groundwork for subsequent tasks 8.2 (hyperparameters), 8.3 (dataset specifications), and 8.4 (CLI testing).
+</info added on 2025-05-11T08:43:40.256Z>
 
 ## 2. Adding hyperparameter arguments [pending]
 ### Dependencies: 8.1
