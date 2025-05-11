@@ -33,7 +33,26 @@ def main():
         # 新增：优化器特定参数测试
         ["--optimizer", "sgd", "--momentum", "0.95", "--nesterov"],
         # 新增：学习率调度器参数测试
-        ["--scheduler", "cosine", "--t-max", "200", "--eta-min", "1e-6", "--min-lr", "1e-7"]
+        ["--scheduler", "cosine", "--t-max", "200", "--eta-min", "1e-6", "--min-lr", "1e-7"],
+        
+        # 新增：数据集类型和来源测试
+        ["--dataset-type", "cifar10", "--dataset-path", "./data/cifar10", "--num-classes", "10"],
+        # 新增：数据拆分配置测试
+        ["--val-split", "0.15", "--test-split", "0.15", "--cross-validation", "--num-folds", "10", "--fold-index", "2"],
+        # 新增：预定义目录测试
+        ["--use-train-val-test-dirs", "--train-dir", "./data/train", "--val-dir", "./data/val", "--test-dir", "./data/test"],
+        # 新增：数据增强选项测试1
+        ["--use-augmentation", "--aug-rotate", "15.0", "--aug-translate", "0.2", "--aug-hflip", "--aug-vflip"],
+        # 新增：数据增强选项测试2
+        ["--use-augmentation", "--aug-color-jitter", "--aug-brightness", "0.2", "--aug-contrast", "0.2", 
+         "--aug-saturation", "0.2", "--aug-hue", "0.1", "--aug-cutout"],
+        # 新增：高级数据增强选项测试
+        ["--aug-mixup", "--aug-mixup-alpha", "0.4", "--aug-cutmix", "--aug-cutmix-alpha", "1.5"],
+        # 新增：数据预处理选项测试
+        ["--normalize", "--normalize-mean", "0.5,0.5,0.5", "--normalize-std", "0.5,0.5,0.5", 
+         "--resize-mode", "pad", "--center-crop"],
+        # 新增：数据采样选项测试
+        ["--use-weighted-sampler", "--sample-weights-file", "./data/weights.json", "--oversampling"]
     ]
     
     print("=== 测试命令行参数解析 ===")
@@ -58,7 +77,8 @@ def main():
         print("\n=== 测试配置文件与命令行参数结合 ===")
         # 命令行参数优先
         cmd_args = ["--config", config_path, "--lr", "0.0001", "--model-type", "base", 
-                   "--loss-type", "focal", "--beta1", "0.85", "--beta2", "0.995"]
+                   "--loss-type", "focal", "--beta1", "0.85", "--beta2", "0.995",
+                   "--dataset-type", "cifar100", "--use-augmentation", "--aug-hflip"]
         print(f"命令行参数: {' '.join(cmd_args)}")
         args = parse_args(cmd_args)
         args_dict = vars(args)

@@ -22,5 +22,30 @@
   "beta1": 0.9,
   "beta2": 0.999,
   "eps": 1e-8,
-  "weight-decay": 1e-4
+  "weight-decay": 1e-4,
+  
+  "dataset-type": "custom",
+  "val-split": 0.2,
+  "test-split": 0.1,
+  "num-workers": 4,
+  "pin-memory": true,
+  
+  "use-augmentation": true,
+  "aug-rotate": 10.0,
+  "aug-translate": 0.1,
+  "aug-scale": 0.1,
+  "aug-hflip": true,
+  "aug-vflip": false,
+  "aug-color-jitter": true,
+  "aug-brightness": 0.1,
+  "aug-contrast": 0.1,
+  "aug-saturation": 0.1,
+  "aug-hue": 0.05,
+  
+  "normalize": true,
+  "normalize-mean": "0.485,0.456,0.406",
+  "normalize-std": "0.229,0.224,0.225",
+  "resize-mode": "crop",
+  
+  "use-weighted-sampler": false
 } 

@@ -48,11 +48,14 @@ Completed adding hyperparameter arguments to the CLI. Implemented the following:
 All tests passed successfully, confirming correct parsing and display of new hyperparameters.
 </info added on 2025-05-11T08:58:22.121Z>
 
-## 3. Adding dataset specification [pending]
+## 3. Adding dataset specification [done]
 ### Dependencies: 8.1
 ### Description: Add arguments to specify the dataset and related configurations.
 ### Details:
 Include arguments for dataset paths, splits (train/validation/test), and any dataset-specific parameters like augmentation options.
+<info added on 2025-05-11T09:15:08.047Z>
+Include arguments for dataset paths, splits (train/validation/test), and any dataset-specific parameters like augmentation options. Implemented in src/utils/cli.py with the following dataset-related argument groups: dataset-type, dataset-path, class-map-file for dataset type and source; test-split, use-train-val-test-dirs, train-dir, val-dir, test-dir, cross-validation, num-folds, fold-index for data split configuration; use-augmentation, aug-rotate, aug-translate, aug-scale, aug-shear, aug-hflip, aug-vflip, aug-color-jitter, aug-brightness, aug-contrast, aug-saturation, aug-hue, aug-grayscale-prob, aug-gaussian-blur, aug-cutout, aug-mixup, aug-mixup-alpha, aug-cutmix, aug-cutmix-alpha for data augmentation options; normalize, normalize-mean, normalize-std, resize-mode, center-crop for data preprocessing options; use-weighted-sampler, sample-weights-file, oversampling, undersampling for data sampling options. Updated parse_args() to handle normalize-mean and normalize-std by converting comma-separated strings to float lists. Enhanced print_args_info() to display all new parameters. Added test cases in scripts/test_cli.py and example configurations in scripts/example_config.json. All new features are verified to work correctly via command line and configuration file.
+</info added on 2025-05-11T09:15:08.047Z>
 
 ## 4. Testing CLI with various arguments [pending]
 ### Dependencies: 8.1, 8.2, 8.3

@@ -27,6 +27,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     # 数据集参数组
     dataset_group = parser.add_argument_group("数据集参数")
+    # 基础数据目录和文件
     dataset_group.add_argument("--data-dir", type=str, help="数据目录路径")
     dataset_group.add_argument("--anno-file", type=str, help="标注文件路径")
     dataset_group.add_argument("--img-size", type=int, default=224, help="图像尺寸")
@@ -34,6 +35,61 @@ def create_parser() -> argparse.ArgumentParser:
     dataset_group.add_argument("--val-split", type=float, default=0.2, help="验证集划分比例")
     dataset_group.add_argument("--num-workers", type=int, default=4, help="数据加载器工作线程数")
     dataset_group.add_argument("--pin-memory", action="store_true", help="使用锁页内存")
+    
+    # 新增：数据集类型和来源
+    dataset_group.add_argument("--dataset-type", type=str, 
+                              choices=["custom", "imagenet", "cifar10", "cifar100", "mnist", "flowers"],
+                              default="custom", help="数据集类型")
+    dataset_group.add_argument("--dataset-path", type=str, help="标准数据集路径（用于非自定义数据集）")
+    dataset_group.add_argument("--class-map-file", type=str, help="类别映射文件路径，用于将标签ID映射到类别名称")
+    
+    # 新增：数据拆分配置
+    dataset_group.add_argument("--test-split", type=float, default=0.1, help="测试集划分比例")
+    dataset_group.add_argument("--use-train-val-test-dirs", action="store_true", 
+                              help="使用预先划分好的训练/验证/测试目录，而不是自动拆分")
+    dataset_group.add_argument("--train-dir", type=str, help="训练集目录（当use-train-val-test-dirs=True时使用）")
+    dataset_group.add_argument("--val-dir", type=str, help="验证集目录（当use-train-val-test-dirs=True时使用）")
+    dataset_group.add_argument("--test-dir", type=str, help="测试集目录（当use-train-val-test-dirs=True时使用）")
+    dataset_group.add_argument("--cross-validation", action="store_true", help="启用交叉验证")
+    dataset_group.add_argument("--num-folds", type=int, default=5, help="交叉验证折数")
+    dataset_group.add_argument("--fold-index", type=int, default=0, help="当前使用的交叉验证折索引")
+    
+    # 新增：数据增强选项
+    dataset_group.add_argument("--use-augmentation", action="store_true", help="启用数据增强")
+    dataset_group.add_argument("--aug-rotate", type=float, default=10.0, help="随机旋转最大角度")
+    dataset_group.add_argument("--aug-translate", type=float, default=0.1, help="随机平移最大比例")
+    dataset_group.add_argument("--aug-scale", type=float, default=0.1, help="随机缩放最大比例")
+    dataset_group.add_argument("--aug-shear", type=float, default=0.1, help="随机剪切最大角度")
+    dataset_group.add_argument("--aug-hflip", action="store_true", help="启用水平翻转")
+    dataset_group.add_argument("--aug-vflip", action="store_true", help="启用垂直翻转")
+    dataset_group.add_argument("--aug-color-jitter", action="store_true", help="启用颜色抖动")
+    dataset_group.add_argument("--aug-brightness", type=float, default=0.1, help="亮度调整范围")
+    dataset_group.add_argument("--aug-contrast", type=float, default=0.1, help="对比度调整范围")
+    dataset_group.add_argument("--aug-saturation", type=float, default=0.1, help="饱和度调整范围")
+    dataset_group.add_argument("--aug-hue", type=float, default=0.1, help="色相调整范围")
+    dataset_group.add_argument("--aug-grayscale-prob", type=float, default=0.0, help="转换为灰度图的概率")
+    dataset_group.add_argument("--aug-gaussian-blur", action="store_true", help="启用高斯模糊")
+    dataset_group.add_argument("--aug-cutout", action="store_true", help="启用随机遮挡（Cutout）")
+    dataset_group.add_argument("--aug-mixup", action="store_true", help="启用Mixup增强")
+    dataset_group.add_argument("--aug-mixup-alpha", type=float, default=0.2, help="Mixup的alpha参数")
+    dataset_group.add_argument("--aug-cutmix", action="store_true", help="启用CutMix增强")
+    dataset_group.add_argument("--aug-cutmix-alpha", type=float, default=1.0, help="CutMix的alpha参数")
+    
+    # 新增：数据预处理选项
+    dataset_group.add_argument("--normalize", action="store_true", default=True, help="启用数据归一化")
+    dataset_group.add_argument("--normalize-mean", type=str, default="0.485,0.456,0.406", 
+                              help="归一化均值，以逗号分隔的三个值")
+    dataset_group.add_argument("--normalize-std", type=str, default="0.229,0.224,0.225", 
+                              help="归一化标准差，以逗号分隔的三个值")
+    dataset_group.add_argument("--resize-mode", type=str, choices=["crop", "squash", "pad"], 
+                              default="crop", help="调整图像大小的方法")
+    dataset_group.add_argument("--center-crop", action="store_true", help="使用中心裁剪而不是随机裁剪")
+    
+    # 新增：数据采样选项
+    dataset_group.add_argument("--use-weighted-sampler", action="store_true", help="使用加权采样器处理类别不平衡")
+    dataset_group.add_argument("--sample-weights-file", type=str, help="样本权重文件路径")
+    dataset_group.add_argument("--oversampling", action="store_true", help="对少数类进行过采样以平衡类别")
+    dataset_group.add_argument("--undersampling", action="store_true", help="对多数类进行欠采样以平衡类别")
 
     # 模型参数组
     model_group = parser.add_argument_group("模型参数")
@@ -173,6 +229,19 @@ def parse_args(args=None) -> argparse.Namespace:
         except ValueError:
             print(f"警告: 无法解析milestones参数 '{parsed_args.milestones}'，格式应为逗号分隔的整数")
     
+    # 处理normalize-mean和normalize-std参数
+    if hasattr(parsed_args, 'normalize_mean') and parsed_args.normalize_mean:
+        try:
+            parsed_args.normalize_mean = [float(m.strip()) for m in parsed_args.normalize_mean.split(',')]
+        except ValueError:
+            print(f"警告: 无法解析normalize-mean参数 '{parsed_args.normalize_mean}'，格式应为逗号分隔的浮点数")
+    
+    if hasattr(parsed_args, 'normalize_std') and parsed_args.normalize_std:
+        try:
+            parsed_args.normalize_std = [float(s.strip()) for s in parsed_args.normalize_std.split(',')]
+        except ValueError:
+            print(f"警告: 无法解析normalize-std参数 '{parsed_args.normalize_std}'，格式应为逗号分隔的浮点数")
+    
     return parsed_args
 
 def print_args_info(args: argparse.Namespace) -> None:
@@ -191,8 +260,16 @@ def print_args_info(args: argparse.Namespace) -> None:
     ]
     
     dataset_args = [
-        'data_dir', 'anno_file', 'img_size', 'batch_size', 'val_split',
-        'num_workers', 'pin_memory'
+        'data_dir', 'anno_file', 'img_size', 'batch_size', 'val_split', 'test_split',
+        'num_workers', 'pin_memory', 'dataset_type', 'dataset_path', 'class_map_file',
+        'use_train_val_test_dirs', 'train_dir', 'val_dir', 'test_dir', 'cross_validation',
+        'num_folds', 'fold_index', 'use_augmentation', 'aug_rotate', 'aug_translate', 
+        'aug_scale', 'aug_shear', 'aug_hflip', 'aug_vflip', 'aug_color_jitter',
+        'aug_brightness', 'aug_contrast', 'aug_saturation', 'aug_hue', 'aug_grayscale_prob',
+        'aug_gaussian_blur', 'aug_cutout', 'aug_mixup', 'aug_mixup_alpha', 'aug_cutmix', 
+        'aug_cutmix_alpha', 'normalize', 'normalize_mean', 'normalize_std', 'resize_mode',
+        'center_crop', 'use_weighted_sampler', 'sample_weights_file', 'oversampling',
+        'undersampling'
     ]
     
     model_args = [
