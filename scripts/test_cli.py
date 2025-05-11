@@ -26,7 +26,14 @@ def main():
         # 训练参数
         ["--epochs", "50", "--lr", "0.001", "--optimizer", "adamw", "--seed", "100"],
         # 日志参数
-        ["--log-dir", "./custom_logs", "--experiment-name", "test_run", "--plot-metrics"]
+        ["--log-dir", "./custom_logs", "--experiment-name", "test_run", "--plot-metrics"],
+        # 新增：超参数测试
+        ["--lr", "0.0005", "--weight-decay", "1e-5", "--loss-type", "focal", 
+         "--step-size", "20", "--gamma", "0.2"],
+        # 新增：优化器特定参数测试
+        ["--optimizer", "sgd", "--momentum", "0.95", "--nesterov"],
+        # 新增：学习率调度器参数测试
+        ["--scheduler", "cosine", "--t-max", "200", "--eta-min", "1e-6", "--min-lr", "1e-7"]
     ]
     
     print("=== 测试命令行参数解析 ===")
@@ -50,7 +57,8 @@ def main():
         # 测试配置文件与命令行参数结合
         print("\n=== 测试配置文件与命令行参数结合 ===")
         # 命令行参数优先
-        cmd_args = ["--config", config_path, "--lr", "0.0001", "--model-type", "base"]
+        cmd_args = ["--config", config_path, "--lr", "0.0001", "--model-type", "base", 
+                   "--loss-type", "focal", "--beta1", "0.85", "--beta2", "0.995"]
         print(f"命令行参数: {' '.join(cmd_args)}")
         args = parse_args(cmd_args)
         args_dict = vars(args)

@@ -13,5 +13,14 @@
   "patience": 15,
   "log-dir": "./custom_logs",
   "checkpoint-dir": "./custom_checkpoints",
-  "experiment-name": "config_file_test"
+  "experiment-name": "config_file_test",
+  
+  "loss-type": "cross_entropy",
+  "t-max": 200,
+  "eta-min": 1e-6,
+  "min-lr": 1e-6,
+  "beta1": 0.9,
+  "beta2": 0.999,
+  "eps": 1e-8,
+  "weight-decay": 1e-4
 } 

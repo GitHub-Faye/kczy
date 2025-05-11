@@ -442,8 +442,8 @@
           "dependencies": [
             1
           ],
-          "details": "Define hyperparameters such as learning rate, batch size, and number of epochs as command-line arguments with appropriate types and default values.",
-          "status": "pending"
+          "details": "Define hyperparameters such as learning rate, batch size, and number of epochs as command-line arguments with appropriate types and default values.\n<info added on 2025-05-11T08:58:22.121Z>\nCompleted adding hyperparameter arguments to the CLI. Implemented the following:\n1. Added hyperparameters in src/utils/cli.py:\n   - Loss function type: --loss-type\n   - Optimizer-specific parameters: momentum, nesterov, beta1, beta2, amsgrad, eps, alpha, centered\n   - Learning rate scheduler parameters: step-size, gamma, milestones, t-max, eta-min, cooldown, factor, min-lr\n2. Enhanced parse_args function to handle delimiter-separated milestones parameter.\n3. Updated print_args_info function to include new hyperparameters in train_args list.\n4. Updated test_cli.py with test cases for:\n   - Basic hyperparameter parsing\n   - Optimizer-specific parameters\n   - Learning rate scheduler parameters\n   - Combined CLI and config file hyperparameters\n5. Updated example_config.json with new hyperparameter configurations.\nAll tests passed successfully, confirming correct parsing and display of new hyperparameters.\n</info added on 2025-05-11T08:58:22.121Z>",
+          "status": "done"
         },
         {
           "id": 3,

@@ -26,11 +26,27 @@ Completed basic argparse setup with the following implementations:
 Parameters are organized into groups: general, dataset, model, training, logging, and checkpoint. CLI arguments integrate with the existing config system, allowing config file parameters to be overridden by command-line arguments. Testing confirmed proper functionality, laying the groundwork for subsequent tasks 8.2 (hyperparameters), 8.3 (dataset specifications), and 8.4 (CLI testing).
 </info added on 2025-05-11T08:43:40.256Z>
 
-## 2. Adding hyperparameter arguments [pending]
+## 2. Adding hyperparameter arguments [done]
 ### Dependencies: 8.1
 ### Description: Add arguments for hyperparameters to the CLI.
 ### Details:
 Define hyperparameters such as learning rate, batch size, and number of epochs as command-line arguments with appropriate types and default values.
+<info added on 2025-05-11T08:58:22.121Z>
+Completed adding hyperparameter arguments to the CLI. Implemented the following:
+1. Added hyperparameters in src/utils/cli.py:
+   - Loss function type: --loss-type
+   - Optimizer-specific parameters: momentum, nesterov, beta1, beta2, amsgrad, eps, alpha, centered
+   - Learning rate scheduler parameters: step-size, gamma, milestones, t-max, eta-min, cooldown, factor, min-lr
+2. Enhanced parse_args function to handle delimiter-separated milestones parameter.
+3. Updated print_args_info function to include new hyperparameters in train_args list.
+4. Updated test_cli.py with test cases for:
+   - Basic hyperparameter parsing
+   - Optimizer-specific parameters
+   - Learning rate scheduler parameters
+   - Combined CLI and config file hyperparameters
+5. Updated example_config.json with new hyperparameter configurations.
+All tests passed successfully, confirming correct parsing and display of new hyperparameters.
+</info added on 2025-05-11T08:58:22.121Z>
 
 ## 3. Adding dataset specification [pending]
 ### Dependencies: 8.1

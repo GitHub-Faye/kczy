@@ -62,6 +62,44 @@ def create_parser() -> argparse.ArgumentParser:
     train_group.add_argument("--early-stopping", action="store_true", help="启用早停策略")
     train_group.add_argument("--patience", type=int, default=10, help="早停策略的耐心值")
     train_group.add_argument("--use-mixed-precision", action="store_true", help="使用混合精度训练")
+    
+    # 添加更多超参数
+    train_group.add_argument("--loss-type", type=str, choices=["cross_entropy", "mse", "bce", "focal"], 
+                         default="cross_entropy", help="损失函数类型")
+    train_group.add_argument("--step-size", type=int, default=30, 
+                         help="学习率步长调度器的步长(仅当scheduler='step'时使用)")
+    train_group.add_argument("--gamma", type=float, default=0.1, 
+                         help="学习率调度器的衰减因子(用于'step'、'multistep'和'exponential')")
+    train_group.add_argument("--milestones", type=str, default="30,60,90", 
+                         help="多步调度器的里程碑，格式为逗号分隔的数字(仅当scheduler='multistep'时使用)")
+    train_group.add_argument("--t-max", type=int, default=100, 
+                         help="余弦退火调度器的最大迭代次数(仅当scheduler='cosine'时使用)")
+    train_group.add_argument("--eta-min", type=float, default=0, 
+                         help="余弦退火调度器的最小学习率(仅当scheduler='cosine'时使用)")
+    train_group.add_argument("--cooldown", type=int, default=0, 
+                         help="减少LR后的冷却期(仅当scheduler='plateau'时使用)")
+    train_group.add_argument("--factor", type=float, default=0.1, 
+                         help="学习率下降因子(仅当scheduler='plateau'时使用)")
+    train_group.add_argument("--min-lr", type=float, default=1e-6, 
+                         help="学习率下限")
+    
+    # 优化器特定参数
+    train_group.add_argument("--momentum", type=float, default=0.9, 
+                         help="SGD优化器的动量值(仅当optimizer='sgd'时使用)")
+    train_group.add_argument("--nesterov", action="store_true", 
+                         help="在SGD中使用Nesterov动量(仅当optimizer='sgd'时使用)")
+    train_group.add_argument("--beta1", type=float, default=0.9, 
+                         help="Adam/AdamW优化器的beta1值(仅当optimizer='adam'或'adamw'时使用)")
+    train_group.add_argument("--beta2", type=float, default=0.999, 
+                         help="Adam/AdamW优化器的beta2值(仅当optimizer='adam'或'adamw'时使用)")
+    train_group.add_argument("--amsgrad", action="store_true", 
+                         help="在Adam/AdamW中使用AMSGrad变体(仅当optimizer='adam'或'adamw'时使用)")
+    train_group.add_argument("--eps", type=float, default=1e-8, 
+                         help="优化器中用于数值稳定性的epsilon值")
+    train_group.add_argument("--alpha", type=float, default=0.99, 
+                         help="RMSprop优化器的alpha值(仅当optimizer='rmsprop'时使用)")
+    train_group.add_argument("--centered", action="store_true", 
+                         help="在RMSprop中使用中心化的梯度(仅当optimizer='rmsprop'时使用)")
 
     # 日志和检查点参数组
     log_group = parser.add_argument_group("日志和检查点参数")
@@ -128,6 +166,13 @@ def parse_args(args=None) -> argparse.Namespace:
         import torch
         parsed_args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
+    # 处理milestones参数（如果存在）
+    if hasattr(parsed_args, 'milestones') and parsed_args.milestones:
+        try:
+            parsed_args.milestones = [int(m.strip()) for m in parsed_args.milestones.split(',')]
+        except ValueError:
+            print(f"警告: 无法解析milestones参数 '{parsed_args.milestones}'，格式应为逗号分隔的整数")
+    
     return parsed_args
 
 def print_args_info(args: argparse.Namespace) -> None:
@@ -158,7 +203,9 @@ def print_args_info(args: argparse.Namespace) -> None:
     train_args = [
         'epochs', 'lr', 'weight_decay', 'optimizer', 'scheduler',
         'grad_clip_value', 'grad_clip_norm', 'early_stopping', 'patience',
-        'use_mixed_precision'
+        'use_mixed_precision', 'loss_type', 'step_size', 'gamma', 'milestones',
+        't_max', 'eta_min', 'cooldown', 'factor', 'min_lr', 'momentum', 'nesterov',
+        'beta1', 'beta2', 'amsgrad', 'eps', 'alpha', 'centered'
     ]
     
     log_args = [
