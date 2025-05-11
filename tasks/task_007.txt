@@ -11,11 +11,37 @@ Use matplotlib to generate static plots of loss and accuracy over time. Provide 
 Generate plots from recorded metrics and verify they accurately represent the training progress.
 
 # Subtasks:
-## 1. Plotting loss over time [pending]
+## 1. Plotting loss over time [done]
 ### Dependencies: None
 ### Description: Create a plot showing the loss values over the training epochs.
 ### Details:
 Use the recorded loss values from each epoch to generate a line plot. Ensure the plot has appropriate labels for the x-axis (epochs) and y-axis (loss).
+<info added on 2025-05-11T04:30:43.059Z>
+The task 'Plotting loss over time' has been completed with the following implementations:
+1. Created directory structure 'src/visualization' with '__init__.py' and 'metrics_plots.py' files.
+2. Implemented two main functions in 'metrics_plots.py':
+   - 'plot_loss()': Specifically for plotting loss curves, supporting data loading from files or MetricsLogger instances.
+   - 'plot_training_history()': Capable of plotting various metric curves, including loss and accuracy.
+
+Key features:
+- Supports loading data from CSV and JSON metric files.
+- Direct usage of MetricsLogger instances.
+- Rich customization options: chart size, title, grid display, DPI, etc.
+- Supports display or saving to a specified path.
+- Created a complete test script 'scripts/test_loss_plot.py' to verify all functionalities.
+- Comprehensive error handling and logging.
+- Detailed documentation and example code.
+
+Test results:
+- Successfully generated loss curves from CSV files.
+- Successfully generated loss curves from MetricsLogger instances.
+- Successfully generated curves for multiple metrics.
+
+Output file paths:
+- 'temp_metrics/plots/loss_curve.png'
+- 'temp_metrics/plots/loss_curve_test1.png'
+- 'temp_metrics/plots/loss_curve_test2.png'
+</info added on 2025-05-11T04:30:43.059Z>
 
 ## 2. Plotting accuracy over time [pending]
 ### Dependencies: None

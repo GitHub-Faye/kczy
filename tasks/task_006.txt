@@ -3,12 +3,17 @@
 # Status: done
 # Dependencies: 4
 # Priority: medium
-# Description: Enable saving and loading trained models.
+# Description: Enable comprehensive model lifecycle management including saving, loading, checkpointing, and ONNX export functionality.
 # Details:
-Implement functions to save the model state and optimizer state. Support saving in PyTorch format and provide options for exporting to ONNX.
+Implementation includes full model state persistence (weights, architecture, optimizer state), training checkpoint management, and ONNX interoperability with advanced features like model simplification and optimization.
 
 # Test Strategy:
-Save a model after training and verify it can be loaded and used for inference.
+Comprehensive testing including:
+- Save/load model state verification
+- Training checkpoint recovery validation
+- ONNX export functionality testing (basic export, dynamic axes, simplification, optimization)
+- ONNX model verification and inference testing
+- Cross-format compatibility checks
 
 # Subtasks:
 ## 1. Saving model state [done]

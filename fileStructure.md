@@ -56,7 +56,10 @@ kczy/
 - `metrics_logger.py` - 性能指标记录和分析工具
 
 #### 可视化模块 (`src/visualization/`)
-- 用于实现模型性能和结构的可视化功能（待实现）
+- `__init__.py` - 可视化模块初始化文件，导出指标绘图功能
+- `metrics_plots.py` - 指标绘图模块，用于绘制训练和评估指标的可视化图表
+  - `plot_loss()` - 绘制训练和验证损失曲线
+  - `plot_training_history()` - 绘制多种训练指标历史曲线
 
 ### 数据目录 (`data/`)
 - `examples/` - 存放示例数据
@@ -78,6 +81,9 @@ kczy/
 
 ### 临时指标目录 (`temp_metrics/`)
 - `plots/` - 存放指标可视化图表
+  - `loss_curve.png` - 损失曲线图
+  - `accuracy_curve.png` - 准确率曲线图
+  - `learning_rate_curve.png` - 学习率曲线图
 - `simulation_train_metrics.csv` - 模拟训练指标数据
 - `simulation_eval_metrics.csv` - 模拟评估指标数据
 
@@ -146,7 +152,10 @@ kczy/
 
 5. 性能指标流程：
    - 训练循环 → `src/utils/metrics_logger.py` → 指标数据保存到CSV/JSON文件
-   - 指标数据 → `src/utils/metrics_logger.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
+   - 指标数据 → `src/utils/metrics_logger.py` 和 `src/visualization/metrics_plots.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
+   - 指标可视化支持两种方式：
+     - 单指标可视化：`plot_loss()` 生成训练和验证损失曲线
+     - 多指标可视化：`plot_training_history()` 生成多指标历史曲线
 
 6. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
@@ -190,5 +199,5 @@ kczy/
 - `tasks/tasks.json` 定义了项目任务
 - 个别任务在 `tasks/task_00X.txt` 中有详细描述
 - 开发按照任务优先级和依赖关系进行
-- 使用测试驱动开发，确保代码质量 
+- 使用测试驱动开发，确保代码质量
 
