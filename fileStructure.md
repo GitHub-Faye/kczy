@@ -58,9 +58,10 @@ kczy/
 #### 可视化模块 (`src/visualization/`)
 - `__init__.py` - 可视化模块初始化文件，导出指标绘图功能
 - `metrics_plots.py` - 指标绘图模块，用于绘制训练和评估指标的可视化图表
-  - `plot_loss()` - 绘制训练和验证损失曲线
-  - `plot_accuracy()` - 绘制训练和验证准确率曲线
-  - `plot_training_history()` - 绘制多种训练指标历史曲线
+  - `save_plot()` - 通用图表保存函数，支持自动添加时间戳和保存元数据
+  - `plot_loss()` - 绘制训练和验证损失曲线，支持保存到文件并可添加时间戳和元数据
+  - `plot_accuracy()` - 绘制训练和验证准确率曲线，支持百分比显示、Y轴范围控制和文件保存（含时间戳和元数据）
+  - `plot_training_history()` - 绘制多种训练指标历史曲线，支持批量生成并保存图表
 
 ### 数据目录 (`data/`)
 - `examples/` - 存放示例数据
@@ -151,17 +152,19 @@ kczy/
    - ONNX模型优化: 原始ONNX模型 → `simplify_onnx_model()`/`optimize_onnx_model()` → 优化后的ONNX模型
    - ONNX模型验证: PyTorch输出 vs ONNX输出 → `verify_onnx_model()` → 验证结果
 
-5. 性能指标流程：
+5. 性能指标可视化流程：
    - 训练循环 → `src/utils/metrics_logger.py` → 指标数据保存到CSV/JSON文件
-   - 指标数据 → `src/utils/metrics_logger.py` 和 `src/visualization/metrics_plots.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
-   - 指标可视化支持三种方式：
-     - 损失曲线可视化：`plot_loss()` 生成训练和验证损失曲线
-     - 准确率曲线可视化：`plot_accuracy()` 生成训练和验证准确率曲线
-     - 多指标可视化：`plot_training_history()` 生成多指标历史曲线，包括损失和准确率
+   - 指标数据 → `src/visualization/metrics_plots.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
+   - 指标可视化支持通用工具和专用功能：
+     - 通用图表保存: `save_plot()` 提供统一的保存接口，支持添加时间戳和元数据
+     - 损失曲线可视化: `plot_loss()` 生成训练和验证损失曲线，支持时间戳和元数据
+     - 准确率曲线可视化: `plot_accuracy()` 生成训练和验证准确率曲线，支持百分比显示和元数据
+     - 多指标可视化: `plot_training_history()` 生成多种指标历史曲线，支持批量保存
 
 6. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
+   - 指标可视化测试: `test_plot_save.py` 测试图表保存功能，包括时间戳和元数据支持
 
 ### 配置依赖关系
 - `src/utils/config.py` 提供全局配置，包括训练参数和指标记录选项
@@ -202,4 +205,3 @@ kczy/
 - 个别任务在 `tasks/task_00X.txt` 中有详细描述
 - 开发按照任务优先级和依赖关系进行
 - 使用测试驱动开发，确保代码质量
-
