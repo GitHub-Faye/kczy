@@ -8,6 +8,7 @@ from typing import Dict, Optional, Tuple, Union, Any
 import json
 import yaml
 from pathlib import Path
+import time
 
 from src.models.vit import VisionTransformer
 from src.utils.config import ViTConfig
@@ -192,7 +193,8 @@ def save_checkpoint(model: torch.nn.Module, optimizer_state: Dict, file_path: st
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer_state
+        'optimizer_state_dict': optimizer_state,
+        'saved_at_timestamp': time.time(),  # 添加时间戳
     }
     
     # 添加训练历史（如果提供）
@@ -205,6 +207,20 @@ def save_checkpoint(model: torch.nn.Module, optimizer_state: Dict, file_path: st
         
     # 添加模型类型
     checkpoint['model_type'] = model.__class__.__name__
+    
+    # 优化器信息（从optimizer_state提取）
+    if optimizer_state and isinstance(optimizer_state, dict):
+        # 记录优化器类型和配置（如果存在）
+        if 'optimizer_type' in optimizer_state:
+            checkpoint['optimizer_info'] = {
+                'type': optimizer_state['optimizer_type']
+            }
+            
+            # 记录学习率调度器信息（如果存在）
+            if 'scheduler_type' in optimizer_state:
+                checkpoint['optimizer_info']['scheduler'] = {
+                    'type': optimizer_state['scheduler_type']
+                }
     
     # 添加配置（如果是VisionTransformer）
     if isinstance(model, VisionTransformer):
@@ -254,6 +270,22 @@ def load_checkpoint(file_path: str, model: torch.nn.Module,
     
     # 获取训练历史
     history = checkpoint.get('history', None)
+    
+    # 打印加载的检查点信息
+    print(f"加载检查点: epoch {epoch}")
+    
+    # 如果存在优化器信息，打印
+    if 'optimizer_info' in checkpoint:
+        opt_info = checkpoint['optimizer_info']
+        print(f"优化器类型: {opt_info.get('type', 'unknown')}")
+        if 'scheduler' in opt_info:
+            print(f"调度器类型: {opt_info['scheduler'].get('type', 'unknown')}")
+    
+    # 如果存在时间戳，打印保存时间
+    if 'saved_at_timestamp' in checkpoint:
+        saved_time = checkpoint['saved_at_timestamp']
+        saved_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(saved_time))
+        print(f"检查点保存时间: {saved_time_str}")
     
     return model, optimizer_state, epoch, history
 

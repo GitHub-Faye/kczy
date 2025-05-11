@@ -45,8 +45,8 @@ kczy/
 - `__init__.py` - 模型模块初始化文件，导出模型类和模型工具函数
 - `vit.py` - Vision Transformer模型定义，包含模型保存/加载功能
 - `train.py` - 模型训练循环实现，支持检查点保存和恢复
-- `optimizer_manager.py` - 优化器管理类
-- `model_utils.py` - 模型保存、加载和转换工具函数，支持多种格式和用例
+- `optimizer_manager.py` - 优化器管理类，包含优化器状态保存和恢复功能
+- `model_utils.py` - 模型和优化器状态保存、加载和转换工具函数，支持多种格式和完整训练状态恢复
 
 #### 工具函数 (`src/utils/`)
 - `__init__.py` - 工具模块初始化文件
@@ -93,6 +93,7 @@ kczy/
 - `test_data_loader.py` - 数据加载器测试
 - `test_metrics_logger.py` - 性能指标记录工具测试
 - `test_model_saving.py` - 模型保存和加载功能测试
+- `test_optimizer_saving.py` - 优化器状态保存和恢复功能测试
 - `sample_image.png` - 测试用图像
 - `batch_images.png` - 测试用批量图像
 - `outputs/` - 测试输出目录
@@ -127,6 +128,8 @@ kczy/
    - 训练完成或检查点 → `src/models/model_utils.py` 保存功能 → 模型文件存储在 `models/` 目录
    - 模型文件 → `src/models/model_utils.py` 加载功能 → 恢复模型用于推理或继续训练
    - 支持多种格式：原生PyTorch模型（.pt/.pth）和ONNX格式（.onnx）
+   - 优化器状态保存 → `optimizer_manager.state_dict()` → 通过`save_checkpoint()`保存到检查点文件
+   - 优化器状态恢复 → 从检查点文件读取 → `optimizer_manager.load_state_dict()` → 恢复训练状态
 
 4. 性能指标流程：
    - 训练循环 → `src/utils/metrics_logger.py` → 指标数据保存到CSV/JSON文件

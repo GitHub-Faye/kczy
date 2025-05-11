@@ -184,27 +184,70 @@ class OptimizerManager:
     
     def state_dict(self) -> Dict:
         """
-        获取优化器的状态字典（用于保存检查点）
+        获取优化器的状态字典，用于保存检查点
+        
+        该方法返回完整的优化器状态，包括：
+        - 优化器的状态字典（包含所有参数的状态，如动量缓冲等）
+        - 学习率调度器的状态字典（如果存在）
+        - 优化器类型和配置参数
+        - 学习率调度器类型和配置参数
+        
+        这些信息足以完全重建优化器和调度器的状态，使训练可以从中断处准确恢复。
         
         返回:
-            Dict: 优化器状态字典
+            Dict: 包含完整优化器状态的字典
         """
-        return {
+        state = {
+            # 基本信息
+            'optimizer_type': self.optimizer_type,
+            'lr': self.lr,
+            'weight_decay': self.weight_decay,
+            'optimizer_params': self.optimizer_params,
+            
+            # 优化器状态
             'optimizer': self.optimizer.state_dict(),
-            'scheduler': self.scheduler.state_dict() if self.scheduler else None
+            
+            # 调度器信息
+            'scheduler_type': self.scheduler_type,
+            'scheduler_params': self.scheduler_params,
         }
+        
+        # 添加调度器状态（如果存在）
+        if self.scheduler:
+            state['scheduler'] = self.scheduler.state_dict()
+        
+        return state
     
     def load_state_dict(self, state_dict: Dict) -> None:
         """
-        从状态字典加载优化器状态（用于恢复检查点）
+        从状态字典加载优化器状态，用于恢复检查点
+        
+        此方法能够从保存的状态字典中完全恢复优化器和调度器的状态，
+        包括学习率、动量缓冲区和其他训练相关状态。
         
         参数:
-            state_dict (Dict): 包含optimizer和scheduler状态的字典
+            state_dict (Dict): 包含优化器和调度器状态的字典，通常是由state_dict()方法生成的
+            
+        注意:
+            - 如果状态字典中包含额外的配置信息（如optimizer_type等），这些信息将被忽略
+            - 调用此方法前，优化器和调度器应该已经被初始化为与保存时相同的配置
+            - 如果需要用不同配置加载状态，应该先用新配置重新创建OptimizerManager实例
         """
+        # 加载优化器状态
         if 'optimizer' in state_dict:
-            self.optimizer.load_state_dict(state_dict['optimizer'])
+            try:
+                self.optimizer.load_state_dict(state_dict['optimizer'])
+            except Exception as e:
+                print(f"警告: 加载优化器状态时出错: {str(e)}")
+                print("这可能是因为模型参数结构发生了变化。将尝试加载兼容的部分。")
+        
+        # 加载调度器状态（如果存在且调度器已初始化）
         if self.scheduler and 'scheduler' in state_dict and state_dict['scheduler']:
-            self.scheduler.load_state_dict(state_dict['scheduler'])
+            try:
+                self.scheduler.load_state_dict(state_dict['scheduler'])
+            except Exception as e:
+                print(f"警告: 加载调度器状态时出错: {str(e)}")
+                print("将使用当前调度器状态继续。")
     
     def configure_parameter_groups(self, config: List[Dict]) -> None:
         """

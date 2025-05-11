@@ -26,6 +26,8 @@ from src.models.model_utils import (
     load_checkpoint,
     get_model_info
 )
+from src.models.optimizer_manager import OptimizerManager
+from src.models.train import TrainingLoop, LossCalculator
 
 class TestModelSaving(unittest.TestCase):
     """测试模型保存和加载功能"""
@@ -149,6 +151,106 @@ class TestModelSaving(unittest.TestCase):
             self.optimizer_state['param_groups'][0]['lr']
         )
         
+    def test_optimizer_manager_state(self):
+        """测试使用OptimizerManager保存和加载优化器状态"""
+        # 创建OptimizerManager
+        optimizer_manager = OptimizerManager(
+            optimizer_type='adamw',
+            model=self.model,
+            lr=0.001,
+            weight_decay=0.01,
+            scheduler_type='cosine',
+            scheduler_params={'T_max': 10, 'eta_min': 0.0001}
+        )
+        
+        # 记录初始学习率
+        initial_lr = optimizer_manager.get_lr()
+        
+        # 模拟学习率调度
+        for _ in range(3):
+            optimizer_manager.scheduler_step()
+        
+        # 记录调度后的学习率
+        scheduled_lr = optimizer_manager.get_lr()
+        
+        # 确认学习率已调度(变化)
+        self.assertNotEqual(initial_lr, scheduled_lr)
+        
+        # 获取优化器状态
+        optimizer_state = optimizer_manager.state_dict()
+        
+        # 保存检查点
+        checkpoint_path = self.save_path / "optimizer_manager_checkpoint.pt"
+        save_checkpoint(
+            model=self.model,
+            optimizer_state=optimizer_state,
+            file_path=str(checkpoint_path),
+            epoch=5
+        )
+        
+        # 创建新模型和优化器管理器
+        new_model = VisionTransformer.from_config(self.model_config)
+        new_optimizer_manager = OptimizerManager(
+            optimizer_type='adamw',
+            model=new_model,
+            lr=0.001,
+            weight_decay=0.01,
+            scheduler_type='cosine',
+            scheduler_params={'T_max': 10, 'eta_min': 0.0001}
+        )
+        
+        # 加载检查点
+        _, loaded_optimizer_state, _, _ = load_checkpoint(
+            str(checkpoint_path), new_model
+        )
+        
+        # 将加载的优化器状态应用到新的优化器管理器
+        new_optimizer_manager.load_state_dict(loaded_optimizer_state)
+        
+        # 检查学习率是否正确恢复
+        self.assertAlmostEqual(new_optimizer_manager.get_lr(), scheduled_lr, places=6)
+        
+        # 模拟训练环境中的保存和恢复
+        # 创建训练循环
+        loss_calculator = LossCalculator('cross_entropy')
+        training_loop = TrainingLoop(
+            model=self.model,
+            loss_calculator=loss_calculator,
+            optimizer_manager=optimizer_manager,
+            device=torch.device('cpu')
+        )
+        
+        # 保存检查点
+        train_checkpoint_path = self.save_path / "training_checkpoint.pt"
+        if optimizer_manager is not None:
+            optimizer_state = optimizer_manager.state_dict()
+            save_checkpoint(
+                model=self.model,
+                optimizer_state=optimizer_state,
+                file_path=str(train_checkpoint_path),
+                epoch=5,
+                train_history=self.history
+            )
+        
+        # 创建新的训练环境
+        new_training_loop = TrainingLoop(
+            model=new_model,
+            loss_calculator=loss_calculator,
+            optimizer_manager=new_optimizer_manager,
+            device=torch.device('cpu')
+        )
+        
+        # 加载检查点
+        loaded_model, loaded_opt_state, loaded_epoch, loaded_history = load_checkpoint(
+            str(train_checkpoint_path), new_model
+        )
+        
+        # 应用加载的优化器状态
+        new_optimizer_manager.load_state_dict(loaded_opt_state)
+        
+        # 验证加载后的学习率
+        self.assertAlmostEqual(new_optimizer_manager.get_lr(), scheduled_lr, places=6)
+
     def test_export_to_onnx(self):
         """测试导出到ONNX格式"""
         try:
