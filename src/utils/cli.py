@@ -169,6 +169,19 @@ def create_parser() -> argparse.ArgumentParser:
     log_group.add_argument("--plot-metrics", action="store_true", help="训练结束后绘制指标曲线")
     log_group.add_argument("--experiment-name", type=str, help="实验名称")
     
+    # TensorBoard参数组
+    tensorboard_group = parser.add_argument_group("TensorBoard参数")
+    tensorboard_group.add_argument("--enable-tensorboard", action="store_true", 
+                               help="启用TensorBoard记录训练指标和模型信息")
+    tensorboard_group.add_argument("--tensorboard-dir", type=str, default="logs", 
+                               help="TensorBoard日志目录")
+    tensorboard_group.add_argument("--tensorboard-port", type=int, default=6006, 
+                               help="TensorBoard服务器端口")
+    tensorboard_group.add_argument("--log-histograms", action="store_true", 
+                               help="记录模型参数和梯度的直方图到TensorBoard")
+    tensorboard_group.add_argument("--log-images", action="store_true", 
+                               help="记录样本图像到TensorBoard")
+    
     return parser
 
 def load_config(config_path: str) -> Dict[str, Any]:
@@ -210,11 +223,30 @@ def parse_args(args=None) -> argparse.Namespace:
     # 处理配置文件
     if parsed_args.config:
         config_dict = load_config(parsed_args.config)
-        # 使用配置文件中的值作为默认值，但命令行参数优先
+        
+        # 获取命令行指定的参数，用于检查哪些参数是通过命令行显式指定的
+        specified_args = {}
+        if args is not None:
+            arg_list = args[:]
+            i = 0
+            while i < len(arg_list):
+                if arg_list[i].startswith('--'):
+                    arg_name = arg_list[i][2:].replace('-', '_')
+                    if i + 1 < len(arg_list) and not arg_list[i+1].startswith('--'):
+                        specified_args[arg_name] = arg_list[i+1]
+                        i += 2
+                    else:  # 布尔标志
+                        specified_args[arg_name] = True
+                        i += 1
+                else:
+                    i += 1
+        
+        # 使用配置文件中的值，除非命令行已明确指定
         for key, value in config_dict.items():
             # 将划线替换为下划线以匹配argparse命名风格
             key = key.replace('-', '_')
-            if not hasattr(parsed_args, key) or getattr(parsed_args, key) is None:
+            # 只有在命令行没有明确指定参数时，才使用配置文件中的值
+            if key not in specified_args:
                 setattr(parsed_args, key, value)
     
     # 如果设备设置为auto，自动选择合适的设备
@@ -225,20 +257,23 @@ def parse_args(args=None) -> argparse.Namespace:
     # 处理milestones参数（如果存在）
     if hasattr(parsed_args, 'milestones') and parsed_args.milestones:
         try:
-            parsed_args.milestones = [int(m.strip()) for m in parsed_args.milestones.split(',')]
+            if isinstance(parsed_args.milestones, str):
+                parsed_args.milestones = [int(m.strip()) for m in parsed_args.milestones.split(',')]
         except ValueError:
             print(f"警告: 无法解析milestones参数 '{parsed_args.milestones}'，格式应为逗号分隔的整数")
     
     # 处理normalize-mean和normalize-std参数
     if hasattr(parsed_args, 'normalize_mean') and parsed_args.normalize_mean:
         try:
-            parsed_args.normalize_mean = [float(m.strip()) for m in parsed_args.normalize_mean.split(',')]
+            if isinstance(parsed_args.normalize_mean, str):
+                parsed_args.normalize_mean = [float(m.strip()) for m in parsed_args.normalize_mean.split(',')]
         except ValueError:
             print(f"警告: 无法解析normalize-mean参数 '{parsed_args.normalize_mean}'，格式应为逗号分隔的浮点数")
     
     if hasattr(parsed_args, 'normalize_std') and parsed_args.normalize_std:
         try:
-            parsed_args.normalize_std = [float(s.strip()) for s in parsed_args.normalize_std.split(',')]
+            if isinstance(parsed_args.normalize_std, str):
+                parsed_args.normalize_std = [float(s.strip()) for s in parsed_args.normalize_std.split(',')]
         except ValueError:
             print(f"警告: 无法解析normalize-std参数 '{parsed_args.normalize_std}'，格式应为逗号分隔的浮点数")
     
@@ -290,6 +325,11 @@ def print_args_info(args: argparse.Namespace) -> None:
         'metrics_dir', 'metrics_format', 'plot_metrics', 'experiment_name'
     ]
     
+    tensorboard_args = [
+        'enable_tensorboard', 'tensorboard_dir', 'tensorboard_port',
+        'log_histograms', 'log_images'
+    ]
+    
     # 打印函数
     def print_section(title, arg_list):
         print(f"\n{title}")
@@ -308,6 +348,7 @@ def print_args_info(args: argparse.Namespace) -> None:
     print_section("模型参数", model_args)
     print_section("训练参数", train_args)
     print_section("日志和检查点参数", log_args)
+    print_section("TensorBoard参数", tensorboard_args)
     
     # 打印设备信息
     if 'device' in args_dict:

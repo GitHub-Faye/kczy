@@ -321,6 +321,7 @@ class TrainingConfig:
         plot_metrics_dir (Optional[str]): 指标曲线保存目录
         enable_tensorboard (bool): 是否启用TensorBoard记录
         tensorboard_dir (str): TensorBoard日志目录
+        tensorboard_port (int): TensorBoard服务器端口号
         log_histograms (bool): 是否记录模型参数和梯度的直方图到TensorBoard
         log_images (bool): 是否记录样本图像到TensorBoard
     """
@@ -357,6 +358,7 @@ class TrainingConfig:
     # 添加TensorBoard相关参数
     enable_tensorboard: bool = False
     tensorboard_dir: str = 'logs'
+    tensorboard_port: int = 6006  # 新增端口配置
     log_histograms: bool = False
     log_images: bool = False
     
@@ -449,6 +451,10 @@ class TrainingConfig:
         # 验证指标保存频率
         if self.metrics_save_freq <= 0:
             raise ValueError(f"指标保存频率必须为正数: {self.metrics_save_freq}")
+        
+        # 验证TensorBoard端口
+        if self.tensorboard_port <= 0 or self.tensorboard_port > 65535:
+            raise ValueError(f"TensorBoard端口必须在1-65535范围内: {self.tensorboard_port}")
             
         return True
     

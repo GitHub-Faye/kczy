@@ -125,6 +125,7 @@ kczy/
 - `test_model_saving.py` - 模型保存和加载功能测试，包含ONNX导出和推理验证
 - `test_optimizer_saving.py` - 优化器状态保存和恢复功能测试
 - `test_cli.py` - 命令行参数解析功能的全面测试，包含基本功能、参数类型与配置文件加载测试
+- `test_tensorboard_cli.py` - TensorBoard相关CLI选项的测试，验证参数解析和配置文件加载
 - `cli_test_edge_cases.py` - 命令行参数解析的边界情况测试，专注于错误处理和特殊输入
 - `cli_integration_test.py` - CLI与训练脚本的集成测试，验证参数解析与训练流程的衔接
 - `run_all_cli_tests.py` - 运行所有CLI相关测试并生成综合报告的脚本
@@ -172,12 +173,14 @@ kczy/
      - 模型超参数：各种优化器参数、学习率调度策略、损失函数类型
      - 数据集配置：数据集类型、拆分策略、增强选项、预处理方法、采样策略
      - 训练控制：早停、梯度裁剪、混合精度训练、检查点保存
+     - TensorBoard配置：启用/禁用记录、日志目录、服务器端口、直方图和图像记录选项
    - CLI测试完整覆盖所有参数解析场景，包括:
      - 基础参数解析与默认值测试(`test_cli.py`)
      - 边界条件与错误处理测试(`cli_test_edge_cases.py`)
      - 配置文件加载与命令行参数混合测试
      - 各种格式(JSON/YAML)配置文件测试
      - 与训练流程的完整集成测试(`cli_integration_test.py`)
+     - TensorBoard选项解析和验证测试(`test_tensorboard_cli.py`)
 
 4. 模型保存和加载流程:
    - 训练完成或检查点 → `src/models/model_utils.py` 保存功能 → 模型文件存储在 `models/` 目录
@@ -210,11 +213,14 @@ kczy/
      - 直方图：模型参数和梯度分布
      - 图像：训练样本和可视化结果
      - 超参数：实验配置和最终性能指标
-   - TensorBoard的配置由TrainingConfig中的参数控制：
-     - enable_tensorboard：是否启用TensorBoard
-     - tensorboard_dir：TensorBoard日志目录
-     - log_histograms：是否记录模型参数和梯度直方图
-     - log_images：是否记录样本图像
+   - TensorBoard的配置由TrainingConfig中的参数控制，可通过CLI配置：
+     - enable_tensorboard(--enable-tensorboard)：是否启用TensorBoard
+     - tensorboard_dir(--tensorboard-dir)：TensorBoard日志目录
+     - tensorboard_port(--tensorboard-port)：TensorBoard服务器端口号（用于启动服务器）
+     - log_histograms(--log-histograms)：是否记录模型参数和梯度直方图
+     - log_images(--log-images)：是否记录样本图像
+   - 支持通过配置文件(JSON/YAML)或命令行参数设置TensorBoard选项
+   - 命令行参数优先级高于配置文件设置
 
 8. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
