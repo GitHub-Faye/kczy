@@ -161,6 +161,170 @@ def plot_loss(
     
     plt.close()
 
+def plot_accuracy(
+    metrics_path: Optional[str] = None, 
+    output_path: Optional[str] = None,
+    metrics_logger: Optional[MetricsLogger] = None,
+    experiment_name: Optional[str] = None,
+    figsize: Tuple[int, int] = (10, 6),
+    title: Optional[str] = None,
+    save_format: str = 'png',
+    dpi: int = 300,
+    show_grid: bool = True,
+    style: Optional[str] = 'seaborn-v0_8-darkgrid',
+    y_lim: Optional[Tuple[float, float]] = None,
+    use_percentage: bool = True
+) -> None:
+    """
+    绘制训练过程中的准确率曲线。
+
+    参数:
+        metrics_path (Optional[str]): 指标文件路径，如果为None则使用metrics_logger。
+        output_path (Optional[str]): 输出图表的路径，如果为None则显示但不保存。
+        metrics_logger (Optional[MetricsLogger]): 指标记录器实例，如果metrics_path为None，则使用此参数。
+        experiment_name (Optional[str]): 实验名称，用于图表标题，如果为None则使用默认标题。
+        figsize (Tuple[int, int]): 图表尺寸，默认为(10, 6)。
+        title (Optional[str]): 图表标题，如果为None则使用默认标题。
+        save_format (str): 保存格式，默认为'png'。
+        dpi (int): 图表DPI，默认为300。
+        show_grid (bool): 是否显示网格，默认为True。
+        style (Optional[str]): Matplotlib样式，默认为'seaborn-v0_8-darkgrid'。
+        y_lim (Optional[Tuple[float, float]]): Y轴范围，如(0, 100)显示0-100%的准确率范围。
+        use_percentage (bool): 是否将准确率值显示为百分比，默认为True。
+
+    返回:
+        None
+    """
+    # 设置绘图样式
+    if style:
+        plt.style.use(style)
+    
+    # 创建图表
+    plt.figure(figsize=figsize)
+    
+    # 从指标文件或指标记录器加载数据
+    train_accuracy_data = None
+    val_accuracy_data = None
+    
+    if metrics_logger:
+        # 使用提供的MetricsLogger实例
+        logger.info("从MetricsLogger实例加载准确率数据")
+        if 'accuracy' in metrics_logger.train_metrics:
+            train_accuracy_data = {
+                'epochs': [entry['epoch'] for entry in metrics_logger.train_metrics['accuracy']],
+                'values': [entry['value'] for entry in metrics_logger.train_metrics['accuracy']]
+            }
+        
+        if 'val_accuracy' in metrics_logger.eval_metrics:
+            val_accuracy_data = {
+                'epochs': [entry['epoch'] for entry in metrics_logger.eval_metrics['val_accuracy']],
+                'values': [entry['value'] for entry in metrics_logger.eval_metrics['val_accuracy']]
+            }
+    
+    elif metrics_path:
+        # 从指标文件加载
+        logger.info(f"从文件加载准确率数据: {metrics_path}")
+        if not os.path.exists(metrics_path):
+            logger.error(f"指标文件不存在: {metrics_path}")
+            return
+
+        try:
+            # 确定文件类型并加载数据
+            if metrics_path.endswith('.csv'):
+                df = pd.read_csv(metrics_path)
+                
+                # 提取训练准确率数据
+                train_accuracy_df = df[df['metric'] == 'accuracy']
+                if not train_accuracy_df.empty:
+                    train_accuracy_data = {
+                        'epochs': train_accuracy_df['epoch'].tolist(),
+                        'values': train_accuracy_df['value'].tolist()
+                    }
+                
+                # 提取验证准确率数据
+                val_accuracy_df = df[df['metric'] == 'val_accuracy']
+                if not val_accuracy_df.empty:
+                    val_accuracy_data = {
+                        'epochs': val_accuracy_df['epoch'].tolist(),
+                        'values': val_accuracy_df['value'].tolist()
+                    }
+            
+            elif metrics_path.endswith('.json'):
+                # 创建临时MetricsLogger来加载JSON数据
+                temp_logger = MetricsLogger(save_dir=os.path.dirname(metrics_path),
+                                          experiment_name=os.path.basename(metrics_path).split('_')[0],
+                                          save_format='json')
+                if 'accuracy' in temp_logger.train_metrics:
+                    train_accuracy_data = {
+                        'epochs': [entry['epoch'] for entry in temp_logger.train_metrics['accuracy']],
+                        'values': [entry['value'] for entry in temp_logger.train_metrics['accuracy']]
+                    }
+                
+                if 'val_accuracy' in temp_logger.eval_metrics:
+                    val_accuracy_data = {
+                        'epochs': [entry['epoch'] for entry in temp_logger.eval_metrics['val_accuracy']],
+                        'values': [entry['value'] for entry in temp_logger.eval_metrics['val_accuracy']]
+                    }
+            else:
+                logger.error(f"不支持的文件格式: {metrics_path}")
+                return
+        except Exception as e:
+            logger.error(f"加载指标数据时出错: {e}")
+            return
+    else:
+        logger.error("必须提供metrics_path或metrics_logger参数之一")
+        return
+    
+    # 绘制训练准确率曲线
+    if train_accuracy_data:
+        plt.plot(train_accuracy_data['epochs'], train_accuracy_data['values'], 'b-', label='Training Accuracy')
+    else:
+        logger.warning("未找到训练准确率数据")
+    
+    # 绘制验证准确率曲线
+    if val_accuracy_data:
+        plt.plot(val_accuracy_data['epochs'], val_accuracy_data['values'], 'r-', label='Validation Accuracy')
+    
+    # 设置图表标题和标签
+    if title:
+        plt.title(title)
+    elif experiment_name:
+        plt.title(f'Training and Validation Accuracy - {experiment_name}')
+    else:
+        plt.title('Training and Validation Accuracy')
+    
+    plt.xlabel('Epoch')
+    
+    # 设置Y轴标签，根据use_percentage设置
+    if use_percentage:
+        plt.ylabel('Accuracy (%)')
+    else:
+        plt.ylabel('Accuracy')
+    
+    # 设置Y轴范围
+    if y_lim:
+        plt.ylim(y_lim)
+    
+    plt.legend()
+    
+    if show_grid:
+        plt.grid(True)
+    
+    # 保存或显示图表
+    if output_path:
+        # 确保输出目录存在
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+        
+        # 保存图表
+        plt.savefig(output_path, dpi=dpi, bbox_inches='tight', format=save_format)
+        logger.info(f"准确率曲线图保存至: {output_path}")
+    else:
+        plt.show()
+    
+    plt.close()
+
 def plot_training_history(
     metrics_path: Optional[str] = None,
     metrics_logger: Optional[MetricsLogger] = None,
@@ -250,6 +414,22 @@ def plot_training_history(
                 show_grid=show_grid,
                 style=style
             )
+        elif metric == 'accuracy':
+            # 使用专门的plot_accuracy函数
+            output_path = None
+            if output_dir:
+                output_path = os.path.join(output_dir, f"{metric}_curve.{save_format}")
+            
+            plot_accuracy(
+                metrics_logger=logger_to_use,
+                output_path=output_path,
+                experiment_name=experiment_name,
+                figsize=figsize,
+                save_format=save_format,
+                dpi=dpi,
+                show_grid=show_grid,
+                style=style
+            )
         else:
             # 使用MetricsLogger的plot_metric方法绘制其他指标
             output_path = None
@@ -269,6 +449,13 @@ if __name__ == "__main__":
     plot_loss(
         metrics_path=os.path.join('temp_metrics', 'simulation_train_metrics.csv'),
         output_path=os.path.join(plots_dir, 'loss_curve_demo.png'),
+        experiment_name='Simulation'
+    )
+    
+    # 绘制准确率曲线
+    plot_accuracy(
+        metrics_path=os.path.join('temp_metrics', 'simulation_train_metrics.csv'),
+        output_path=os.path.join(plots_dir, 'accuracy_curve_demo.png'),
         experiment_name='Simulation'
     )
     

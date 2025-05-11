@@ -59,6 +59,7 @@ kczy/
 - `__init__.py` - 可视化模块初始化文件，导出指标绘图功能
 - `metrics_plots.py` - 指标绘图模块，用于绘制训练和评估指标的可视化图表
   - `plot_loss()` - 绘制训练和验证损失曲线
+  - `plot_accuracy()` - 绘制训练和验证准确率曲线
   - `plot_training_history()` - 绘制多种训练指标历史曲线
 
 ### 数据目录 (`data/`)
@@ -153,9 +154,10 @@ kczy/
 5. 性能指标流程：
    - 训练循环 → `src/utils/metrics_logger.py` → 指标数据保存到CSV/JSON文件
    - 指标数据 → `src/utils/metrics_logger.py` 和 `src/visualization/metrics_plots.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
-   - 指标可视化支持两种方式：
-     - 单指标可视化：`plot_loss()` 生成训练和验证损失曲线
-     - 多指标可视化：`plot_training_history()` 生成多指标历史曲线
+   - 指标可视化支持三种方式：
+     - 损失曲线可视化：`plot_loss()` 生成训练和验证损失曲线
+     - 准确率曲线可视化：`plot_accuracy()` 生成训练和验证准确率曲线
+     - 多指标可视化：`plot_training_history()` 生成多指标历史曲线，包括损失和准确率
 
 6. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能

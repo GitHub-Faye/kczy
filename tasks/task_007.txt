@@ -43,11 +43,14 @@ Output file paths:
 - 'temp_metrics/plots/loss_curve_test2.png'
 </info added on 2025-05-11T04:30:43.059Z>
 
-## 2. Plotting accuracy over time [pending]
+## 2. Plotting accuracy over time [done]
 ### Dependencies: None
 ### Description: Create a plot showing the accuracy values over the training epochs.
 ### Details:
 Use the recorded accuracy values from each epoch to generate a line plot. Ensure the plot has appropriate labels for the x-axis (epochs) and y-axis (accuracy).
+<info added on 2025-05-11T04:43:41.337Z>
+Implemented the training accuracy curve plotting functionality. Key features include: 1) Added plot_accuracy function mirroring plot_loss's interface with additional y_lim and use_percentage options. 2) Updated __init__.py to export the new function. 3) Enhanced plot_training_history to utilize plot_accuracy for accuracy metrics. 4) Included example usage code. 5) Conducted successful testing with simulated data, generating clear accuracy progression charts. Supports displaying both training and validation accuracy, flexible plotting options, and automatic output directory creation.
+</info added on 2025-05-11T04:43:41.337Z>
 
 ## 3. Saving plots to files [pending]
 ### Dependencies: 7.1, 7.2

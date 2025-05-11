@@ -398,8 +398,8 @@
           "title": "Plotting accuracy over time",
           "description": "Create a plot showing the accuracy values over the training epochs.",
           "dependencies": [],
-          "details": "Use the recorded accuracy values from each epoch to generate a line plot. Ensure the plot has appropriate labels for the x-axis (epochs) and y-axis (accuracy).",
-          "status": "pending"
+          "details": "Use the recorded accuracy values from each epoch to generate a line plot. Ensure the plot has appropriate labels for the x-axis (epochs) and y-axis (accuracy).\n<info added on 2025-05-11T04:43:41.337Z>\nImplemented the training accuracy curve plotting functionality. Key features include: 1) Added plot_accuracy function mirroring plot_loss's interface with additional y_lim and use_percentage options. 2) Updated __init__.py to export the new function. 3) Enhanced plot_training_history to utilize plot_accuracy for accuracy metrics. 4) Included example usage code. 5) Conducted successful testing with simulated data, generating clear accuracy progression charts. Supports displaying both training and validation accuracy, flexible plotting options, and automatic output directory creation.\n</info added on 2025-05-11T04:43:41.337Z>",
+          "status": "done"
         },
         {
           "id": 3,
