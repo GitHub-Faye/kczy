@@ -85,13 +85,15 @@ class MultiHeadSelfAttention(nn.Module):
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
         
-    def forward(self, x):
+    def forward(self, x, return_attention=False):
         """
         参数:
             x: 形状为 [batch_size, seq_len, dim] 的张量
+            return_attention: 是否返回注意力权重
             
         返回:
             形状为 [batch_size, seq_len, dim] 的自注意力输出
+            如果return_attention=True，还会返回形状为 [batch_size, num_heads, seq_len, seq_len] 的注意力权重
         """
         B, N, C = x.shape  # batch_size, 序列长度, 嵌入维度
         
@@ -107,6 +109,7 @@ class MultiHeadSelfAttention(nn.Module):
         
         # 应用softmax得到注意力权重
         attn = attn.softmax(dim=-1)
+        attn_weights = attn.clone()  # 保存注意力权重
         attn = self.attn_drop(attn)
         
         # 将注意力权重与value相乘，并重塑
@@ -117,6 +120,8 @@ class MultiHeadSelfAttention(nn.Module):
         x = self.proj(x)
         x = self.proj_drop(x)
         
+        if return_attention:
+            return x, attn_weights
         return x
 
 
@@ -196,21 +201,32 @@ class TransformerEncoderBlock(nn.Module):
         # 丢弃路径（随机深度）
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
         
-    def forward(self, x):
+    def forward(self, x, return_attention=False):
         """
         参数:
             x: 形状为 [batch_size, seq_len, dim] 的张量
+            return_attention: 是否返回注意力权重
             
         返回:
             形状为 [batch_size, seq_len, dim] 的张量
+            如果return_attention=True，还会返回形状为 [batch_size, num_heads, seq_len, seq_len] 的注意力权重
         """
         # 残差连接1: 输入 + 自注意力
-        x = x + self.drop_path(self.attn(self.norm1(x)))
-        
-        # 残差连接2: 前一层输出 + 前馈网络
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
-        
-        return x
+        if return_attention:
+            attn_output, attn_weights = self.attn(self.norm1(x), return_attention=True)
+            x = x + self.drop_path(attn_output)
+            
+            # 残差连接2: 前一层输出 + 前馈网络
+            x = x + self.drop_path(self.mlp(self.norm2(x)))
+            
+            return x, attn_weights
+        else:
+            x = x + self.drop_path(self.attn(self.norm1(x)))
+            
+            # 残差连接2: 前一层输出 + 前馈网络
+            x = x + self.drop_path(self.mlp(self.norm2(x)))
+            
+            return x
 
 
 class DropPath(nn.Module):
@@ -270,17 +286,27 @@ class TransformerEncoder(nn.Module):
             for i in range(depth)
         ])
     
-    def forward(self, x):
+    def forward(self, x, return_attention=False):
         """
         参数:
             x: 形状为 [batch_size, seq_len, dim] 的张量
+            return_attention: 是否返回注意力权重
             
         返回:
             形状为 [batch_size, seq_len, dim] 的张量
+            如果return_attention=True，还会返回层级注意力权重的列表，每个元素形状为 [batch_size, num_heads, seq_len, seq_len]
         """
-        # 依次通过所有编码器块
+        attention_weights = [] if return_attention else None
+        
         for block in self.blocks:
-            x = block(x)
+            if return_attention:
+                x, attn_weights = block(x, return_attention=True)
+                attention_weights.append(attn_weights)
+            else:
+                x = block(x)
+                
+        if return_attention:
+            return x, attention_weights
         return x
 
 
@@ -463,8 +489,18 @@ class VisionTransformer(nn.Module):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
             
-    def forward_features(self, x):
-        """提取特征，不包括分类头"""
+    def forward_features(self, x, return_attention=False):
+        """
+        提取特征，不包括分类头
+        
+        参数:
+            x: 形状为 [batch_size, channels, height, width] 的输入图像
+            return_attention: 是否返回注意力权重
+            
+        返回:
+            如果return_attention=False，返回形状为 [batch_size, embed_dim] 的特征向量
+            如果return_attention=True，额外返回所有层的注意力权重
+        """
         # 补丁嵌入 [B, C, H, W] -> [B, num_patches, embed_dim]
         x = self.patch_embed(x)
         
@@ -479,20 +515,38 @@ class VisionTransformer(nn.Module):
         x = self.pos_drop(x)
         
         # 应用Transformer编码器
-        x = self.transformer(x)
-        
-        # 返回类别标记
-        return x[:, 0]
+        if return_attention:
+            x, attention_weights = self.transformer(x, return_attention=True)
+            # 返回类别标记和注意力权重
+            return x[:, 0], attention_weights
+        else:
+            x = self.transformer(x)
+            # 返回类别标记
+            return x[:, 0]
     
-    def forward(self, x):
-        """完整的前向传播"""
+    def forward(self, x, return_attention=False):
+        """
+        完整的前向传播
+        
+        参数:
+            x: 形状为 [batch_size, channels, height, width] 的输入图像
+            return_attention: 是否返回注意力权重
+            
+        返回:
+            如果return_attention=False，返回形状为 [batch_size, num_classes] 的预测结果
+            如果return_attention=True，额外返回所有层的注意力权重
+        """
         # 提取特征
-        x = self.forward_features(x)
-        
-        # 应用分类头
-        x = self.head(x)
-        
-        return x
+        if return_attention:
+            x, attention_weights = self.forward_features(x, return_attention=True)
+            # 应用分类头
+            logits = self.head(x)
+            return logits, attention_weights
+        else:
+            x = self.forward_features(x)
+            # 应用分类头
+            logits = self.head(x)
+            return logits
     
     @classmethod
     def from_config(cls, config: ViTConfig) -> 'VisionTransformer':

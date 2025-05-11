@@ -66,6 +66,10 @@ kczy/
   - `plot_loss()` - 绘制训练和验证损失曲线，支持保存到文件并可添加时间戳和元数据
   - `plot_accuracy()` - 绘制训练和验证准确率曲线，支持百分比显示、Y轴范围控制和文件保存（含时间戳和元数据）
   - `plot_training_history()` - 绘制多种训练指标历史曲线，支持批量生成并保存图表
+- `attention_viz.py` - 注意力权重可视化模块，用于创建Vision Transformer模型注意力权重的热力图和可视化
+  - `plot_attention_weights()` - 生成注意力热力图，可视化模型中特定层和头的注意力分布
+  - `visualize_attention_on_image()` - 将注意力权重叠加到原始图像上，直观展示模型关注的区域
+  - `visualize_all_heads()` - 同时展示特定层的所有注意力头，方便对比不同头关注的区域差异
 
 ### 数据目录 (`data/`)
 - `examples/` - 存放示例数据
@@ -100,6 +104,9 @@ kczy/
   - `loss_curve.png` - 损失曲线图
   - `accuracy_curve.png` - 准确率曲线图
   - `learning_rate_curve.png` - 学习率曲线图
+  - `attention_heatmap.png` - 注意力权重热力图
+  - `attention_on_image.png` - 注意力权重与原始图像叠加图
+  - `all_attention_heads.png` - 多头注意力可视化图
 - `simulation_train_metrics.csv` - 模拟训练指标数据
 - `simulation_eval_metrics.csv` - 模拟评估指标数据
 
@@ -114,6 +121,7 @@ kczy/
 - `test_tensorboard.py` - TensorBoard集成功能测试脚本，演示TensorBoard日志记录和可视化
 - `start_tensorboard.py` - TensorBoard启动脚本，提供独立的TensorBoard启动功能
 - `verify_tensorboard_web.py` - TensorBoard Web界面验证脚本，运行测试并生成报告
+- `test_attention_viz.py` - 注意力权重可视化测试脚本，展示如何提取和可视化模型的注意力权重
 - `example_config.json` - 示例配置文件，用于CLI测试
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
@@ -216,7 +224,15 @@ kczy/
      - 准确率曲线可视化: `plot_accuracy()` 生成训练和验证准确率曲线，支持百分比显示和元数据
      - 多指标可视化: `plot_training_history()` 生成多种指标历史曲线，支持批量保存
 
-7. TensorBoard集成流程：
+7. 注意力权重可视化流程:
+   - ViT模型 → `return_attention=True` 参数 → 返回注意力权重列表
+   - 注意力权重 → `src/visualization/attention_viz.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
+   - 注意力可视化支持三种主要功能:
+     - 热力图可视化: `plot_attention_weights()` 生成层级或特定头的注意力热力图
+     - 图像叠加可视化: `visualize_attention_on_image()` 将注意力权重叠加到原始图像上
+     - 多头对比可视化: `visualize_all_heads()` 并排展示所有注意力头，便于比较不同头的关注区域
+
+8. TensorBoard集成流程：
    - 训练开始 → 初始化TensorBoard SummaryWriter → 日志保存到`logs/`目录
    - 训练过程 → MetricsLogger记录指标到TensorBoard → 实时生成事件文件
    - TensorBoard启动方式：
@@ -242,7 +258,7 @@ kczy/
    - 命令行参数优先级高于配置文件设置
    - TensorBoard工具模块(tensorboard_utils.py)提供了启动、检查和停止TensorBoard的通用功能
 
-8. 测试流程：
+9. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
    - 指标可视化测试: `test_plot_save.py` 测试图表保存功能，包括时间戳和元数据支持
