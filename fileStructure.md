@@ -19,8 +19,10 @@ kczy/
 │   ├── examples/       # 示例数据
 │   └── images/         # 图像文件
 ├── models/             # 训练好的模型保存目录
+│   └── onnx/           # ONNX格式模型目录
 ├── notebooks/          # Jupyter笔记本，用于实验和演示
 ├── scripts/            # 实用脚本，如训练脚本和演示脚本
+├── docs/               # 文档目录
 ├── temp_metrics/       # 临时指标存储目录
 │   └── plots/          # 指标可视化图表
 ├── tests/              # 测试代码
@@ -46,7 +48,7 @@ kczy/
 - `vit.py` - Vision Transformer模型定义，包含模型保存/加载功能
 - `train.py` - 模型训练循环实现，支持检查点保存和恢复
 - `optimizer_manager.py` - 优化器管理类，包含优化器状态保存和恢复功能
-- `model_utils.py` - 模型和优化器状态保存、加载和转换工具函数，支持多种格式和完整训练状态恢复
+- `model_utils.py` - 模型和优化器状态保存、加载和转换工具函数，支持多种格式（PyTorch、ONNX）和完整训练状态恢复，包含ONNX模型验证、优化和简化功能
 
 #### 工具函数 (`src/utils/`)
 - `__init__.py` - 工具模块初始化文件
@@ -66,6 +68,10 @@ kczy/
 - `*.pt`/`*.pth` - PyTorch格式的模型权重和配置
 - `*.onnx` - ONNX格式的导出模型
 - `*_config.json` - 模型配置文件
+- `onnx/` - ONNX格式模型专用目录，包含导出的模型及配置文件
+
+### 文档目录 (`docs/`)
+- `onnx_export.md` - ONNX导出功能使用指南，包含详细示例和注意事项
 
 ### 笔记本目录 (`notebooks/`)
 - 用于存放Jupyter笔记本，进行实验和演示
@@ -80,6 +86,7 @@ kczy/
 - `test_training_loop.py` - 测试训练循环
 - `demo_custom_dataset.py` - 自定义数据集演示
 - `demo_augmentation.py` - 数据增强演示
+- `demo_onnx_export.py` - ONNX导出功能演示脚本，展示模型导出、验证和推理性能比较
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
 
@@ -92,7 +99,7 @@ kczy/
 - `test_preprocessing.py` - 数据预处理测试
 - `test_data_loader.py` - 数据加载器测试
 - `test_metrics_logger.py` - 性能指标记录工具测试
-- `test_model_saving.py` - 模型保存和加载功能测试
+- `test_model_saving.py` - 模型保存和加载功能测试，包含ONNX导出和推理验证
 - `test_optimizer_saving.py` - 优化器状态保存和恢复功能测试
 - `sample_image.png` - 测试用图像
 - `batch_images.png` - 测试用批量图像
@@ -131,11 +138,17 @@ kczy/
    - 优化器状态保存 → `optimizer_manager.state_dict()` → 通过`save_checkpoint()`保存到检查点文件
    - 优化器状态恢复 → 从检查点文件读取 → `optimizer_manager.load_state_dict()` → 恢复训练状态
 
-4. 性能指标流程：
+4. ONNX模型导出和推理流程:
+   - PyTorch模型 → `export_to_onnx()` → ONNX格式模型文件（.onnx）
+   - ONNX模型文件 → `load_onnx_model()` → ONNX Runtime会话 → `onnx_inference()` → 推理结果
+   - ONNX模型优化: 原始ONNX模型 → `simplify_onnx_model()`/`optimize_onnx_model()` → 优化后的ONNX模型
+   - ONNX模型验证: PyTorch输出 vs ONNX输出 → `verify_onnx_model()` → 验证结果
+
+5. 性能指标流程：
    - 训练循环 → `src/utils/metrics_logger.py` → 指标数据保存到CSV/JSON文件
    - 指标数据 → `src/utils/metrics_logger.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
 
-5. 测试流程：
+6. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
 

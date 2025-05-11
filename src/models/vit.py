@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from src.utils.config import ViTConfig
 import os
 
@@ -664,7 +664,9 @@ class VisionTransformer(nn.Module):
     
     def export_to_onnx(self, file_path: str, input_shape: Optional[Tuple] = None, 
                       dynamic_axes: Optional[Dict] = None, export_params: bool = True,
-                      opset_version: int = 11) -> None:
+                      opset_version: int = 11, simplify: bool = False, 
+                      target_providers: Optional[List[str]] = None,
+                      verify: bool = True, optimize: bool = False) -> str:
         """
         将模型导出为ONNX格式
         
@@ -674,9 +676,13 @@ class VisionTransformer(nn.Module):
             dynamic_axes (Optional[Dict]): 动态轴信息
             export_params (bool): 是否导出参数
             opset_version (int): ONNX操作集版本
+            simplify (bool): 是否简化ONNX模型（需要安装onnx-simplifier）
+            target_providers (Optional[List[str]]): 目标推理提供商列表（如 ['CPUExecutionProvider', 'CUDAExecutionProvider']）
+            verify (bool): 是否验证导出的模型正确性
+            optimize (bool): 是否优化ONNX模型（针对性能）
             
         返回:
-            None
+            str: 导出的ONNX文件路径
         """
         # 创建保存目录（如果不存在）
         os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
@@ -694,6 +700,12 @@ class VisionTransformer(nn.Module):
             
         # 创建示例输入
         dummy_input = torch.randn(input_shape, device=next(self.parameters()).device)
+        
+        # 记录原始输出用于验证
+        original_output = None
+        if verify:
+            with torch.no_grad():
+                original_output = self(dummy_input).cpu().numpy()
         
         # 导出为ONNX
         torch.onnx.export(
@@ -716,6 +728,38 @@ class VisionTransformer(nn.Module):
             self.save_config(config_path)
         except Exception as e:
             print(f"保存配置文件时出错: {str(e)}")
+            
+        # 导入model_utils模块中的函数进行后续处理
+        # 导入放在函数内部避免循环导入问题
+        try:
+            from src.models.model_utils import (
+                simplify_onnx_model, 
+                optimize_onnx_model, 
+                verify_onnx_model
+            )
+            
+            # 简化模型（如果需要）
+            if simplify:
+                try:
+                    model_path = simplify_onnx_model(file_path)
+                    print(f"模型已简化: {model_path}")
+                except ImportError:
+                    import warnings
+                    warnings.warn("未找到onnx-simplifier包，跳过模型简化步骤")
+            
+            # 优化模型（如果需要）
+            if optimize:
+                model_path = optimize_onnx_model(file_path, target_providers)
+                print(f"模型已优化: {model_path}")
+                
+            # 验证模型（如果需要）
+            if verify and original_output is not None:
+                verify_onnx_model(file_path, dummy_input.cpu().numpy(), original_output, target_providers)
+                
+        except ImportError as e:
+            print(f"加载辅助函数时出错: {str(e)}")
+            
+        return file_path
     
     @classmethod
     def create_tiny(cls, num_classes: int = 1000) -> 'VisionTransformer':

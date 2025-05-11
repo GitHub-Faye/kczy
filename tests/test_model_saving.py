@@ -18,14 +18,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 from src.models.vit import VisionTransformer
 from src.utils.config import ViTConfig
-from src.models.model_utils import (
-    save_model,
-    load_model,
-    export_to_onnx,
-    save_checkpoint,
-    load_checkpoint,
-    get_model_info
-)
+from src.models import save_model, load_model, export_to_onnx, save_checkpoint, load_checkpoint, get_model_info
 from src.models.optimizer_manager import OptimizerManager
 from src.models.train import TrainingLoop, LossCalculator
 
@@ -255,7 +248,9 @@ class TestModelSaving(unittest.TestCase):
         """测试导出到ONNX格式"""
         try:
             import onnx
+            onnx_available = True
         except ImportError:
+            onnx_available = False
             self.skipTest("ONNX库未安装，跳过ONNX导出测试")
             
         # 导出为ONNX
@@ -268,6 +263,103 @@ class TestModelSaving(unittest.TestCase):
         
         # 检查文件大小确保不为空 (最小应该有几KB)
         self.assertGreater(os.path.getsize(onnx_path), 1000)
+        
+        # 测试带有更多选项的导出
+        if onnx_available:
+            try:
+                import onnxruntime
+                # 导出并验证
+                optimized_path = self.save_path / "test_model_optimized.onnx"
+                export_to_onnx(
+                    self.model, 
+                    str(optimized_path),
+                    verify=True,
+                    input_shape=(2, 3, self.model_config.img_size, self.model_config.img_size)
+                )
+                self.assertTrue(optimized_path.exists())
+                
+                # 测试简化选项
+                try:
+                    from onnxsim import simplify
+                    simplified_path = self.save_path / "test_model_simplified.onnx"
+                    export_to_onnx(
+                        self.model,
+                        str(simplified_path),
+                        simplify=True
+                    )
+                    self.assertTrue(simplified_path.exists())
+                except ImportError:
+                    print("onnx-simplifier未安装，跳过简化测试")
+                
+            except ImportError:
+                print("onnxruntime未安装，跳过验证测试")
+    
+    def test_onnx_inference(self):
+        """测试ONNX模型推理"""
+        try:
+            import onnx
+            import onnxruntime
+        except ImportError:
+            self.skipTest("ONNX或ONNXRuntime库未安装，跳过ONNX推理测试")
+            
+        # 从model_utils模块导入推理相关函数
+        try:
+            from src.models.model_utils import load_onnx_model, onnx_inference
+        except ImportError:
+            self.skipTest("无法导入ONNX推理函数，跳过测试")
+        
+        # 导出模型
+        onnx_path = self.save_path / "test_onnx_inference.onnx"
+        export_to_onnx(self.model, str(onnx_path), verify=True)
+        
+        # 创建推理输入
+        input_data = np.random.randn(1, 3, self.model_config.img_size, self.model_config.img_size).astype(np.float32)
+        
+        # PyTorch模型推理结果
+        self.model.eval()
+        with torch.no_grad():
+            torch_output = self.model(torch.tensor(input_data).to(next(self.model.parameters()).device))
+            torch_output = torch_output.cpu().numpy()
+        
+        # 加载ONNX模型并推理
+        session = load_onnx_model(str(onnx_path))
+        onnx_output = onnx_inference(session, input_data)
+        
+        # 比较输出
+        self.assertTrue(np.allclose(torch_output, onnx_output, rtol=1e-3, atol=1e-5))
+        
+    def test_onnx_model_info(self):
+        """测试获取ONNX模型信息"""
+        try:
+            import onnx
+        except ImportError:
+            self.skipTest("ONNX库未安装，跳过ONNX模型信息测试")
+            
+        # 从model_utils模块导入信息获取函数
+        try:
+            from src.models.model_utils import get_onnx_model_info
+        except ImportError:
+            self.skipTest("无法导入ONNX模型信息函数，跳过测试")
+        
+        # 导出模型
+        onnx_path = self.save_path / "test_onnx_info.onnx"
+        export_to_onnx(self.model, str(onnx_path))
+        
+        # 获取模型信息
+        info = get_onnx_model_info(str(onnx_path))
+        
+        # 验证信息基本字段
+        self.assertIn('model_path', info)
+        self.assertIn('inputs', info)
+        self.assertIn('outputs', info)
+        self.assertIn('node_count', info)
+        self.assertIn('operation_types', info)
+        
+        # 验证输入输出信息
+        self.assertEqual(len(info['inputs']), 1)
+        self.assertEqual(info['inputs'][0]['name'], 'input')
+        self.assertEqual(len(info['outputs']), 1)
+        self.assertEqual(info['outputs'][0]['name'], 'output')
     
     def test_get_model_info(self):
         """测试获取模型信息"""

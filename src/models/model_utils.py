@@ -4,11 +4,13 @@
 
 import os
 import torch
-from typing import Dict, Optional, Tuple, Union, Any
+from typing import Dict, Optional, Tuple, Union, Any, List, Callable
 import json
 import yaml
 from pathlib import Path
 import time
+import warnings
+import numpy as np
 
 from src.models.vit import VisionTransformer
 from src.utils.config import ViTConfig
@@ -109,7 +111,9 @@ def load_model(file_path: str, model_class: Optional[Any] = None,
 
 def export_to_onnx(model: torch.nn.Module, file_path: str, input_shape: Optional[Tuple] = None,
                   dynamic_axes: Optional[Dict] = None, export_params: bool = True,
-                  opset_version: int = 11) -> None:
+                  opset_version: int = 11, simplify: bool = False, 
+                  target_providers: Optional[List[str]] = None,
+                  verify: bool = True, optimize: bool = False) -> str:
     """
     将模型导出为ONNX格式
     
@@ -120,9 +124,13 @@ def export_to_onnx(model: torch.nn.Module, file_path: str, input_shape: Optional
         dynamic_axes (Optional[Dict]): 动态轴信息
         export_params (bool): 是否导出参数
         opset_version (int): ONNX操作集版本
+        simplify (bool): 是否简化ONNX模型（需要安装onnx-simplifier）
+        target_providers (Optional[List[str]]): 目标推理提供商列表（如 ['CPUExecutionProvider', 'CUDAExecutionProvider']）
+        verify (bool): 是否验证导出的模型正确性
+        optimize (bool): 是否优化ONNX模型（针对性能）
         
     返回:
-        None
+        str: 导出的ONNX文件路径
     """
     # 检查是否是VisionTransformer
     if isinstance(model, VisionTransformer):
@@ -132,7 +140,11 @@ def export_to_onnx(model: torch.nn.Module, file_path: str, input_shape: Optional
             input_shape=input_shape,
             dynamic_axes=dynamic_axes,
             export_params=export_params,
-            opset_version=opset_version
+            opset_version=opset_version,
+            simplify=simplify,
+            target_providers=target_providers,
+            verify=verify,
+            optimize=optimize
         )
     else:
         # 通用ONNX导出逻辑
@@ -153,6 +165,12 @@ def export_to_onnx(model: torch.nn.Module, file_path: str, input_shape: Optional
         # 创建示例输入
         dummy_input = torch.randn(input_shape, device=next(model.parameters()).device)
         
+        # 记录原始输出用于验证
+        original_output = None
+        if verify:
+            with torch.no_grad():
+                original_output = model(dummy_input).cpu().numpy()
+        
         # 导出为ONNX
         torch.onnx.export(
             model,                        # 要导出的模型
@@ -167,6 +185,303 @@ def export_to_onnx(model: torch.nn.Module, file_path: str, input_shape: Optional
         )
             
         print(f"模型已导出为ONNX格式: {file_path}")
+        
+        # 简化模型（如果需要）
+        if simplify:
+            try:
+                import onnxsim
+                model_path = simplify_onnx_model(file_path)
+                print(f"模型已简化: {model_path}")
+            except ImportError:
+                warnings.warn("未找到onnx-simplifier包，跳过模型简化步骤")
+        
+        # 优化模型（如果需要）
+        if optimize:
+            model_path = optimize_onnx_model(file_path, target_providers)
+            print(f"模型已优化: {model_path}")
+            
+        # 验证模型（如果需要）
+        if verify and original_output is not None:
+            verify_onnx_model(file_path, dummy_input.cpu().numpy(), original_output, target_providers)
+    
+    return file_path
+
+
+def simplify_onnx_model(file_path: str) -> str:
+    """
+    简化ONNX模型以提高性能
+    
+    参数:
+        file_path (str): ONNX模型文件路径
+        
+    返回:
+        str: 简化后的ONNX模型文件路径
+    """
+    try:
+        import onnx
+        from onnxsim import simplify
+        
+        # 加载ONNX模型
+        onnx_model = onnx.load(file_path)
+        
+        # 简化模型
+        simplified_model, check = simplify(onnx_model)
+        
+        if not check:
+            warnings.warn("简化模型失败，可能存在不支持的操作或结构")
+            return file_path
+            
+        # 保存简化后的模型
+        onnx.save(simplified_model, file_path)
+        return file_path
+        
+    except ImportError:
+        warnings.warn("未找到onnx或onnx-simplifier包，无法简化模型")
+        return file_path
+
+
+def optimize_onnx_model(file_path: str, target_providers: Optional[List[str]] = None) -> str:
+    """
+    优化ONNX模型以提高特定目标运行时的性能
+    
+    参数:
+        file_path (str): ONNX模型文件路径
+        target_providers (Optional[List[str]]): 目标推理提供商列表
+            例如: ['CPUExecutionProvider', 'CUDAExecutionProvider']
+            
+    返回:
+        str: 优化后的ONNX模型文件路径
+    """
+    try:
+        import onnx
+        from onnxruntime.transformers import optimizer
+        
+        # 设置默认提供商
+        if target_providers is None:
+            target_providers = ['CPUExecutionProvider']
+            
+        # 优化模型文件名
+        opt_file_path = file_path.replace('.onnx', '_optimized.onnx')
+        
+        # 根据不同的提供商应用不同的优化
+        if 'CUDAExecutionProvider' in target_providers:
+            # GPU优化
+            opt_options = optimizer.OptimizationOptions()
+            opt_options.enable_gelu_approximation = True  # 使用GELU近似
+            opt_options.enable_attention_fusion = True    # 启用注意力融合
+            opt_options.enable_layer_norm_fusion = True   # 启用层规范化融合
+            
+            # 创建优化器并优化模型
+            opt_model = optimizer.optimize_model(
+                file_path,
+                'cuda',
+                opt_options
+            )
+            
+            # 保存优化后的模型
+            opt_model.save_model_to_file(opt_file_path)
+        else:
+            # CPU优化
+            opt_options = optimizer.OptimizationOptions()
+            opt_options.enable_gelu_approximation = True
+            
+            # 创建优化器并优化模型
+            opt_model = optimizer.optimize_model(
+                file_path,
+                'cpu',
+                opt_options
+            )
+            
+            # 保存优化后的模型
+            opt_model.save_model_to_file(opt_file_path)
+            
+        return opt_file_path
+    
+    except ImportError:
+        warnings.warn("未找到onnx或onnxruntime.transformers包，无法优化模型")
+        return file_path
+    except Exception as e:
+        warnings.warn(f"优化模型时出错: {str(e)}")
+        return file_path
+
+
+def verify_onnx_model(file_path: str, input_data: np.ndarray, 
+                     expected_output: np.ndarray, 
+                     providers: Optional[List[str]] = None,
+                     rtol: float = 1e-3, atol: float = 1e-5) -> bool:
+    """
+    验证ONNX模型的输出与预期输出是否一致
+    
+    参数:
+        file_path (str): ONNX模型文件路径
+        input_data (np.ndarray): 输入数据
+        expected_output (np.ndarray): 预期输出
+        providers (Optional[List[str]]): ONNX Runtime执行提供商
+        rtol (float): 相对容差
+        atol (float): 绝对容差
+        
+    返回:
+        bool: 验证是否通过
+    """
+    try:
+        import onnxruntime as ort
+        
+        # 设置默认提供商
+        if providers is None:
+            providers = ['CPUExecutionProvider']
+            
+        # 创建ONNX Runtime会话
+        session_options = ort.SessionOptions()
+        session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        session = ort.InferenceSession(file_path, sess_options=session_options, providers=providers)
+        
+        # 获取输入名
+        input_name = session.get_inputs()[0].name
+        
+        # 运行推理
+        onnx_outputs = session.run(None, {input_name: input_data})
+        
+        # 比较输出
+        is_close = np.allclose(onnx_outputs[0], expected_output, rtol=rtol, atol=atol)
+        
+        if is_close:
+            print("✓ ONNX模型验证通过: 输出与PyTorch模型一致")
+        else:
+            max_diff = np.max(np.abs(onnx_outputs[0] - expected_output))
+            print(f"× ONNX模型验证失败: 输出与PyTorch模型不一致，最大差异: {max_diff}")
+            
+        return is_close
+    
+    except ImportError:
+        warnings.warn("未找到onnxruntime包，无法验证模型")
+        return False
+    except Exception as e:
+        warnings.warn(f"验证模型时出错: {str(e)}")
+        return False
+
+
+def load_onnx_model(file_path: str, providers: Optional[List[str]] = None) -> Any:
+    """
+    加载ONNX模型用于推理
+    
+    参数:
+        file_path (str): ONNX模型文件路径
+        providers (Optional[List[str]]): ONNX Runtime执行提供商
+        
+    返回:
+        Any: ONNX Runtime推理会话
+    """
+    try:
+        import onnxruntime as ort
+        
+        # 设置默认提供商
+        if providers is None:
+            providers = ['CPUExecutionProvider']
+            if 'CUDAExecutionProvider' in ort.get_available_providers():
+                providers.insert(0, 'CUDAExecutionProvider')
+                
+        # 创建ONNX Runtime会话
+        session_options = ort.SessionOptions()
+        session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        session = ort.InferenceSession(file_path, sess_options=session_options, providers=providers)
+        
+        return session
+    
+    except ImportError:
+        raise ImportError("未找到onnxruntime包，无法加载ONNX模型")
+    except Exception as e:
+        raise RuntimeError(f"加载ONNX模型时出错: {str(e)}")
+
+
+def onnx_inference(session: Any, input_data: np.ndarray) -> np.ndarray:
+    """
+    使用加载的ONNX模型进行推理
+    
+    参数:
+        session (Any): ONNX Runtime推理会话
+        input_data (np.ndarray): 输入数据
+        
+    返回:
+        np.ndarray: 模型输出
+    """
+    try:
+        # 获取输入名
+        input_name = session.get_inputs()[0].name
+        
+        # 运行推理
+        outputs = session.run(None, {input_name: input_data})
+        
+        return outputs[0]
+    
+    except Exception as e:
+        raise RuntimeError(f"ONNX推理时出错: {str(e)}")
+
+
+def get_onnx_model_info(file_path: str) -> Dict[str, Any]:
+    """
+    获取ONNX模型的信息
+    
+    参数:
+        file_path (str): ONNX模型文件路径
+        
+    返回:
+        Dict[str, Any]: 模型信息字典
+    """
+    try:
+        import onnx
+        
+        # 加载ONNX模型
+        model = onnx.load(file_path)
+        
+        # 提取信息
+        info = {
+            'model_path': file_path,
+            'ir_version': model.ir_version,
+            'producer_name': model.producer_name,
+            'producer_version': model.producer_version,
+            'domain': model.domain,
+            'model_version': model.model_version,
+            'doc_string': model.doc_string,
+        }
+        
+        # 提取输入信息
+        inputs = []
+        for input in model.graph.input:
+            input_info = {
+                'name': input.name,
+                'shape': [dim.dim_value for dim in input.type.tensor_type.shape.dim 
+                         if hasattr(dim, 'dim_value') and dim.dim_value]
+            }
+            inputs.append(input_info)
+        info['inputs'] = inputs
+        
+        # 提取输出信息
+        outputs = []
+        for output in model.graph.output:
+            output_info = {
+                'name': output.name,
+                'shape': [dim.dim_value for dim in output.type.tensor_type.shape.dim 
+                         if hasattr(dim, 'dim_value') and dim.dim_value]
+            }
+            outputs.append(output_info)
+        info['outputs'] = outputs
+        
+        # 提取节点信息
+        info['node_count'] = len(model.graph.node)
+        op_types = {}
+        for node in model.graph.node:
+            op_type = node.op_type
+            op_types[op_type] = op_types.get(op_type, 0) + 1
+        info['operation_types'] = op_types
+        
+        return info
+    
+    except ImportError:
+        warnings.warn("未找到onnx包，无法获取模型信息")
+        return {'model_path': file_path, 'error': 'onnx package not found'}
+    except Exception as e:
+        warnings.warn(f"获取模型信息时出错: {str(e)}")
+        return {'model_path': file_path, 'error': str(e)}
 
 
 def save_checkpoint(model: torch.nn.Module, optimizer_state: Dict, file_path: str, 
