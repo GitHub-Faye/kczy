@@ -89,6 +89,8 @@ kczy/
 
 ### 文档目录 (`docs/`)
 - `onnx_export.md` - ONNX导出功能使用指南，包含详细示例和注意事项
+- `tensorboard_usage_guide.md` - TensorBoard使用指南，详细说明启动方式、界面功能及使用技巧
+- `tensorboard_validation_report.md` - TensorBoard验证报告，记录验证过程和测试结果
 
 ### 笔记本目录 (`notebooks/`)
 - 用于存放Jupyter笔记本，进行实验和演示
@@ -111,6 +113,7 @@ kczy/
 - `demo_onnx_export.py` - ONNX导出功能演示脚本，展示模型导出、验证和推理性能比较
 - `test_tensorboard.py` - TensorBoard集成功能测试脚本，演示TensorBoard日志记录和可视化
 - `start_tensorboard.py` - TensorBoard启动脚本，提供独立的TensorBoard启动功能
+- `verify_tensorboard_web.py` - TensorBoard Web界面验证脚本，运行测试并生成报告
 - `example_config.json` - 示例配置文件，用于CLI测试
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
@@ -129,6 +132,7 @@ kczy/
 - `test_cli.py` - 命令行参数解析功能的全面测试，包含基本功能、参数类型与配置文件加载测试
 - `test_tensorboard_cli.py` - TensorBoard相关CLI选项的测试，验证参数解析和配置文件加载
 - `test_tensorboard_utils.py` - TensorBoard工具模块测试，验证TensorBoard服务器的启动、检查和停止功能
+- `test_tensorboard_web_interface.py` - TensorBoard Web界面验证测试，测试界面可访问性和数据显示功能
 - `cli_test_edge_cases.py` - 命令行参数解析的边界情况测试，专注于错误处理和特殊输入
 - `cli_integration_test.py` - CLI与训练脚本的集成测试，验证参数解析与训练流程的衔接
 - `run_all_cli_tests.py` - 运行所有CLI相关测试并生成综合报告的脚本
@@ -144,6 +148,11 @@ kczy/
 ### 任务目录 (`tasks/`)
 - `tasks.json` - 任务定义文件
 - `task_00X.txt` - 个别任务详细描述文件
+
+### 报告目录 (`reports/`)
+- 用于存放测试报告和验证结果
+- `tensorboard_web_test_results.xml` - TensorBoard Web界面测试的XML格式报告
+- `tensorboard_web_test_results.html` - TensorBoard Web界面测试的HTML格式报告
 
 ### 其他文件
 - `requirements.txt` - 项目依赖列表
