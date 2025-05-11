@@ -1,0 +1,17 @@
+{
+  "img_size": 224,
+  "patch_size": 16,
+  "in_channels": 3,
+  "num_classes": 2,
+  "embed_dim": 192,
+  "depth": 12,
+  "num_heads": 3,
+  "mlp_ratio": 4.0,
+  "qkv_bias": true,
+  "representation_size": null,
+  "drop_rate": 0.0,
+  "attn_drop_rate": 0.0,
+  "drop_path_rate": 0.0,
+  "pretrained": false,
+  "pretrained_path": null
+}

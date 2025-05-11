@@ -1,6 +1,6 @@
 # Task ID: 8
 # Title: Build Command-Line Interface
-# Status: pending
+# Status: done
 # Dependencies: 1, 4
 # Priority: medium
 # Description: Develop a CLI for configuring and launching training.
@@ -57,9 +57,26 @@ Include arguments for dataset paths, splits (train/validation/test), and any dat
 Include arguments for dataset paths, splits (train/validation/test), and any dataset-specific parameters like augmentation options. Implemented in src/utils/cli.py with the following dataset-related argument groups: dataset-type, dataset-path, class-map-file for dataset type and source; test-split, use-train-val-test-dirs, train-dir, val-dir, test-dir, cross-validation, num-folds, fold-index for data split configuration; use-augmentation, aug-rotate, aug-translate, aug-scale, aug-shear, aug-hflip, aug-vflip, aug-color-jitter, aug-brightness, aug-contrast, aug-saturation, aug-hue, aug-grayscale-prob, aug-gaussian-blur, aug-cutout, aug-mixup, aug-mixup-alpha, aug-cutmix, aug-cutmix-alpha for data augmentation options; normalize, normalize-mean, normalize-std, resize-mode, center-crop for data preprocessing options; use-weighted-sampler, sample-weights-file, oversampling, undersampling for data sampling options. Updated parse_args() to handle normalize-mean and normalize-std by converting comma-separated strings to float lists. Enhanced print_args_info() to display all new parameters. Added test cases in scripts/test_cli.py and example configurations in scripts/example_config.json. All new features are verified to work correctly via command line and configuration file.
 </info added on 2025-05-11T09:15:08.047Z>
 
-## 4. Testing CLI with various arguments [pending]
+## 4. Testing CLI with various arguments [done]
 ### Dependencies: 8.1, 8.2, 8.3
 ### Description: Test the CLI with different combinations of arguments to ensure correctness.
 ### Details:
 Run the CLI with various argument combinations, including edge cases, to verify that all arguments are parsed correctly and the program behaves as expected.
+<info added on 2025-05-11T11:42:41.976Z>
+Completed CLI argument parsing tests with the following test files:
+1. tests/test_cli.py - Comprehensive CLI argument parsing tests covering basic functionality, parameter types, edge cases, and config file loading.
+2. tests/cli_test_edge_cases.py - Specialized tests for various edge cases including error handling, special inputs, and exception scenarios.
+3. tests/cli_integration_test.py - Tests for CLI integration with the training script.
+4. tests/run_all_cli_tests.py - Script to run all CLI tests and generate a comprehensive report.
+5. tests/outputs/cli_tests/extended_test_config.json - Extended test configuration file (JSON format).
+6. tests/outputs/cli_tests/extended_test_config.yaml - Extended test configuration file (YAML format).
+
+All tests passed successfully, verifying the correctness and robustness of the CLI argument parsing functionality. Test coverage includes:
+- Basic argument parsing and default values
+- Edge cases and error handling
+- Special parameter format processing
+- Handling of duplicate/conflicting arguments
+- Config file loading combined with command-line arguments
+- Parameter type checking and conversion
+</info added on 2025-05-11T11:42:41.976Z>
 

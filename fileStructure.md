@@ -113,9 +113,18 @@ kczy/
 - `test_metrics_logger.py` - 性能指标记录工具测试
 - `test_model_saving.py` - 模型保存和加载功能测试，包含ONNX导出和推理验证
 - `test_optimizer_saving.py` - 优化器状态保存和恢复功能测试
+- `test_cli.py` - 命令行参数解析功能的全面测试，包含基本功能、参数类型与配置文件加载测试
+- `cli_test_edge_cases.py` - 命令行参数解析的边界情况测试，专注于错误处理和特殊输入
+- `cli_integration_test.py` - CLI与训练脚本的集成测试，验证参数解析与训练流程的衔接
+- `run_all_cli_tests.py` - 运行所有CLI相关测试并生成综合报告的脚本
 - `sample_image.png` - 测试用图像
 - `batch_images.png` - 测试用批量图像
 - `outputs/` - 测试输出目录
+  - `cli_tests/` - CLI测试输出目录
+    - `integration/` - CLI集成测试输出子目录，包含各类测试场景的结果
+    - `temp_configs/` - 测试用临时配置文件
+    - `extended_test_config.json` - 扩展测试用JSON配置文件
+    - `extended_test_config.yaml` - 扩展测试用YAML配置文件
 
 ### 任务目录 (`tasks/`)
 - `tasks.json` - 任务定义文件
@@ -152,6 +161,12 @@ kczy/
      - 模型超参数：各种优化器参数、学习率调度策略、损失函数类型
      - 数据集配置：数据集类型、拆分策略、增强选项、预处理方法、采样策略
      - 训练控制：早停、梯度裁剪、混合精度训练、检查点保存
+   - CLI测试完整覆盖所有参数解析场景，包括:
+     - 基础参数解析与默认值测试(`test_cli.py`)
+     - 边界条件与错误处理测试(`cli_test_edge_cases.py`)
+     - 配置文件加载与命令行参数混合测试
+     - 各种格式(JSON/YAML)配置文件测试
+     - 与训练流程的完整集成测试(`cli_integration_test.py`)
 
 4. 模型保存和加载流程:
    - 训练完成或检查点 → `src/models/model_utils.py` 保存功能 → 模型文件存储在 `models/` 目录
@@ -179,6 +194,8 @@ kczy/
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
    - 指标可视化测试: `test_plot_save.py` 测试图表保存功能，包括时间戳和元数据支持
+   - CLI测试流程: 从基础单元测试(`test_cli.py`)到边界条件测试(`cli_test_edge_cases.py`)再到集成测试(`cli_integration_test.py`)，系统性验证CLI功能的正确性和健壮性
+   - 综合CLI测试: `run_all_cli_tests.py`集成运行所有CLI测试并生成详细报告，支持中文输出和完整测试统计
 
 ### 配置依赖关系
 - `src/utils/config.py` 提供全局配置，包括训练参数和指标记录选项

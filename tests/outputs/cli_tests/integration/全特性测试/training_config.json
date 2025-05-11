@@ -1,0 +1,33 @@
+{
+  "batch_size": 32,
+  "num_epochs": 10,
+  "learning_rate": 0.0005,
+  "weight_decay": 1e-05,
+  "optimizer_type": "adamw",
+  "loss_type": "cross_entropy",
+  "scheduler_type": "cosine",
+  "scheduler_params": {
+    "T_max": 100
+  },
+  "grad_clip_value": 1.0,
+  "grad_clip_norm": null,
+  "use_mixed_precision": false,
+  "val_split": 0.2,
+  "early_stopping": true,
+  "early_stopping_patience": 5,
+  "checkpoint_dir": "tests\\outputs\\cli_tests\\integration\\full_test/checkpoints",
+  "checkpoint_freq": 1,
+  "log_dir": "tests\\outputs\\cli_tests\\integration\\full_test/logs",
+  "log_freq": 10,
+  "random_seed": 42,
+  "device": "cpu",
+  "num_workers": 4,
+  "pin_memory": false,
+  "optimizer_params": {},
+  "metrics_dir": "./metrics",
+  "metrics_format": "csv",
+  "metrics_save_freq": 1,
+  "metrics_experiment_name": "full_feature_test",
+  "plot_metrics": true,
+  "plot_metrics_dir": null
+}

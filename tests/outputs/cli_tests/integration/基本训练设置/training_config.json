@@ -1,0 +1,33 @@
+{
+  "batch_size": 32,
+  "num_epochs": 5,
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "optimizer_type": "adam",
+  "loss_type": "cross_entropy",
+  "scheduler_type": "cosine",
+  "scheduler_params": {
+    "T_max": 100
+  },
+  "grad_clip_value": null,
+  "grad_clip_norm": null,
+  "use_mixed_precision": false,
+  "val_split": 0.2,
+  "early_stopping": false,
+  "early_stopping_patience": 10,
+  "checkpoint_dir": "./checkpoints",
+  "checkpoint_freq": 1,
+  "log_dir": "./logs",
+  "log_freq": 10,
+  "random_seed": 42,
+  "device": "cpu",
+  "num_workers": 4,
+  "pin_memory": false,
+  "optimizer_params": {},
+  "metrics_dir": "./metrics",
+  "metrics_format": "csv",
+  "metrics_save_freq": 1,
+  "metrics_experiment_name": null,
+  "plot_metrics": true,
+  "plot_metrics_dir": null
+}
