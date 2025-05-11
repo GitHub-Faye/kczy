@@ -1,22 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""
-ViT模型训练脚本，使用命令行参数配置训练过程
-"""
-
-import os
-import sys
-import logging
-from datetime import datetime
-
-# 添加项目根目录到Python路径
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, project_root)
-
-# 导入项目模块
-from src.utils.cli import parse_args, print_args_info
-from src.utils.config import ViTConfig, TrainingConfig
+#!/usr/bin/env python# -*- coding: utf-8 -*-"""ViT模型训练脚本，使用命令行参数配置训练过程"""import osimport sysimport loggingfrom datetime import datetime# 添加项目根目录到Python路径project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))sys.path.insert(0, project_root)# 导入项目模块from src.utils.cli import parse_args, print_args_infofrom src.utils.config import ViTConfig, TrainingConfigfrom src.utils.tensorboard_utils import start_tensorboard, stop_tensorboard
 
 # 配置日志
 logging.basicConfig(
@@ -141,6 +123,16 @@ def create_training_config(args):
     config.metrics_format = args.metrics_format
     config.metrics_experiment_name = args.experiment_name
     
+    # TensorBoard相关配置
+    config.enable_tensorboard = args.enable_tensorboard
+    config.tensorboard_dir = args.tensorboard_dir
+    config.tensorboard_port = args.tensorboard_port
+    config.log_histograms = args.log_histograms
+    config.log_images = args.log_images
+    config.start_tensorboard = args.start_tensorboard
+    config.tensorboard_host = args.tensorboard_host
+    config.tensorboard_background = args.tensorboard_background
+    
     # 验证配置有效性
     config.validate()
     
@@ -188,12 +180,43 @@ def main():
     
     logger.info(f"配置已保存到: {config_dir}")
     
+    # 启动TensorBoard（如果指定）
+    tensorboard_process = None
+    if args.start_tensorboard:
+        try:
+            # 确保TensorBoard目录存在
+            tensorboard_dir = os.path.abspath(args.tensorboard_dir)
+            os.makedirs(tensorboard_dir, exist_ok=True)
+            
+            # 启动TensorBoard
+            tensorboard_process = start_tensorboard(
+                log_dir=tensorboard_dir,
+                port=args.tensorboard_port,
+                host=args.tensorboard_host,
+                background=args.tensorboard_background
+            )
+            
+            if not args.tensorboard_background:
+                logger.info("TensorBoard已在前台启动，训练将在TensorBoard关闭后继续")
+                # 如果在前台运行，这将阻塞直到TensorBoard被关闭
+                # 由于不希望在此处阻塞训练，因此只有当启动失败时才会到达这里
+                logger.warning("前台TensorBoard已关闭，继续训练过程")
+            elif tensorboard_process:
+                logger.info(f"TensorBoard已在后台启动，可以通过 http://{args.tensorboard_host}:{args.tensorboard_port} 访问")
+        except Exception as e:
+            logger.error(f"启动TensorBoard失败: {e}")
+    
     # TODO: 在这里实现实际的数据加载、模型训练等功能
     # 例如：
     # dataset = load_dataset(args.data_dir, args.anno_file)
     # model = build_model(vit_config)
     # trainer = Trainer(model, dataset, training_config)
     # trainer.train()
+    
+    # 如果TensorBoard在后台运行，在训练结束后停止它
+    if tensorboard_process:
+        stop_tensorboard(tensorboard_process)
+        logger.info("已停止TensorBoard服务器")
     
     logger.info("训练脚本执行完成 (模拟)")
     return 0

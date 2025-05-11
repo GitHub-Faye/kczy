@@ -181,6 +181,12 @@ def create_parser() -> argparse.ArgumentParser:
                                help="记录模型参数和梯度的直方图到TensorBoard")
     tensorboard_group.add_argument("--log-images", action="store_true", 
                                help="记录样本图像到TensorBoard")
+    tensorboard_group.add_argument("--start-tensorboard", action="store_true",
+                               help="启动TensorBoard服务器")
+    tensorboard_group.add_argument("--tensorboard-host", type=str, default="localhost",
+                               help="TensorBoard服务器主机地址")
+    tensorboard_group.add_argument("--tensorboard-background", action="store_true",
+                               help="在后台运行TensorBoard服务器")
     
     return parser
 

@@ -358,9 +358,12 @@ class TrainingConfig:
     # 添加TensorBoard相关参数
     enable_tensorboard: bool = False
     tensorboard_dir: str = 'logs'
-    tensorboard_port: int = 6006  # 新增端口配置
+    tensorboard_port: int = 6006
     log_histograms: bool = False
     log_images: bool = False
+    start_tensorboard: bool = False
+    tensorboard_host: str = 'localhost'
+    tensorboard_background: bool = False
     
     def __post_init__(self):
         """初始化后进行验证"""

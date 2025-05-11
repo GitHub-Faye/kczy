@@ -56,6 +56,7 @@ kczy/
 - `__init__.py` - 工具模块初始化文件
 - `config.py` - 全局配置参数定义
 - `metrics_logger.py` - 性能指标记录和分析工具，支持TensorBoard集成，可记录标量指标、直方图、图像和超参数
+- `tensorboard_utils.py` - TensorBoard工具模块，提供TensorBoard启动、检查和停止功能
 - `cli.py` - 命令行接口实现，包含参数解析和处理功能，支持从配置文件加载和组织化参数显示。提供丰富的配置选项，包括：(1)超参数配置：损失函数类型、各种优化器特定参数（如SGD的momentum、Adam的beta值等）和学习率调度器参数（如cosine的t-max、eta-min等）；(2)数据集规范：数据集类型和来源（支持自定义、ImageNet、CIFAR10等多种数据集）、数据拆分（训练/验证/测试比例或预定义目录）、数据增强（旋转、缩放、翻转、颜色调整、Mixup/CutMix等高级增强）、数据预处理（归一化、调整大小方法）和采样策略（加权采样、过采样、欠采样等）
 
 #### 可视化模块 (`src/visualization/`)
@@ -109,6 +110,7 @@ kczy/
 - `demo_augmentation.py` - 数据增强演示
 - `demo_onnx_export.py` - ONNX导出功能演示脚本，展示模型导出、验证和推理性能比较
 - `test_tensorboard.py` - TensorBoard集成功能测试脚本，演示TensorBoard日志记录和可视化
+- `start_tensorboard.py` - TensorBoard启动脚本，提供独立的TensorBoard启动功能
 - `example_config.json` - 示例配置文件，用于CLI测试
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
@@ -126,6 +128,7 @@ kczy/
 - `test_optimizer_saving.py` - 优化器状态保存和恢复功能测试
 - `test_cli.py` - 命令行参数解析功能的全面测试，包含基本功能、参数类型与配置文件加载测试
 - `test_tensorboard_cli.py` - TensorBoard相关CLI选项的测试，验证参数解析和配置文件加载
+- `test_tensorboard_utils.py` - TensorBoard工具模块测试，验证TensorBoard服务器的启动、检查和停止功能
 - `cli_test_edge_cases.py` - 命令行参数解析的边界情况测试，专注于错误处理和特殊输入
 - `cli_integration_test.py` - CLI与训练脚本的集成测试，验证参数解析与训练流程的衔接
 - `run_all_cli_tests.py` - 运行所有CLI相关测试并生成综合报告的脚本
@@ -207,7 +210,11 @@ kczy/
 7. TensorBoard集成流程：
    - 训练开始 → 初始化TensorBoard SummaryWriter → 日志保存到`logs/`目录
    - 训练过程 → MetricsLogger记录指标到TensorBoard → 实时生成事件文件
-   - 运行TensorBoard服务器(tensorboard --logdir=logs) → 访问http://localhost:6006/
+   - TensorBoard启动方式：
+     - 通过CLI参数：`--start-tensorboard` → 训练脚本自动启动TensorBoard服务器
+     - 独立脚本：`python scripts/start_tensorboard.py` → 单独启动TensorBoard服务器
+     - 代码调用：`start_tensorboard()` → 在代码中启动TensorBoard
+   - 访问TensorBoard：http://localhost:6006/（默认）或自定义主机和端口
    - 指标记录的类型：
      - 标量指标：训练损失、验证损失、准确率等
      - 直方图：模型参数和梯度分布
@@ -216,11 +223,15 @@ kczy/
    - TensorBoard的配置由TrainingConfig中的参数控制，可通过CLI配置：
      - enable_tensorboard(--enable-tensorboard)：是否启用TensorBoard
      - tensorboard_dir(--tensorboard-dir)：TensorBoard日志目录
-     - tensorboard_port(--tensorboard-port)：TensorBoard服务器端口号（用于启动服务器）
+     - tensorboard_port(--tensorboard-port)：TensorBoard服务器端口号
      - log_histograms(--log-histograms)：是否记录模型参数和梯度直方图
      - log_images(--log-images)：是否记录样本图像
+     - start_tensorboard(--start-tensorboard)：是否启动TensorBoard服务器
+     - tensorboard_host(--tensorboard-host)：TensorBoard服务器主机地址
+     - tensorboard_background(--tensorboard-background)：是否在后台运行TensorBoard
    - 支持通过配置文件(JSON/YAML)或命令行参数设置TensorBoard选项
    - 命令行参数优先级高于配置文件设置
+   - TensorBoard工具模块(tensorboard_utils.py)提供了启动、检查和停止TensorBoard的通用功能
 
 8. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
