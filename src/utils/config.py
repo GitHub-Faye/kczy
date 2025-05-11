@@ -319,6 +319,10 @@ class TrainingConfig:
         metrics_experiment_name (Optional[str]): 指标实验名称，用于生成文件名
         plot_metrics (bool): 是否在训练结束后自动绘制指标曲线
         plot_metrics_dir (Optional[str]): 指标曲线保存目录
+        enable_tensorboard (bool): 是否启用TensorBoard记录
+        tensorboard_dir (str): TensorBoard日志目录
+        log_histograms (bool): 是否记录模型参数和梯度的直方图到TensorBoard
+        log_images (bool): 是否记录样本图像到TensorBoard
     """
     batch_size: int = 32
     num_epochs: int = 100
@@ -350,6 +354,11 @@ class TrainingConfig:
     metrics_experiment_name: Optional[str] = None
     plot_metrics: bool = True
     plot_metrics_dir: Optional[str] = None
+    # 添加TensorBoard相关参数
+    enable_tensorboard: bool = False
+    tensorboard_dir: str = 'logs'
+    log_histograms: bool = False
+    log_images: bool = False
     
     def __post_init__(self):
         """初始化后进行验证"""

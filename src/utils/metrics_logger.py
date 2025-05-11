@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from torch.utils.tensorboard import SummaryWriter
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +22,24 @@ class MetricsLogger:
         experiment_name (str): 实验名称，用于生成文件名
         save_format (str): 保存格式，'csv' 或 'json'
         save_freq (int): 保存频率（每多少个epoch保存一次）
+        enable_tensorboard (bool): 是否启用TensorBoard记录
+        tensorboard_log_dir (str): TensorBoard日志目录，默认为'logs'
     """
     def __init__(
         self,
         save_dir: str = 'metrics',
         experiment_name: Optional[str] = None,
         save_format: str = 'csv',
-        save_freq: int = 1
+        save_freq: int = 1,
+        enable_tensorboard: bool = False,
+        tensorboard_log_dir: str = 'logs'
     ):
         self.save_dir = save_dir
         self.experiment_name = experiment_name or f"exp_{int(time.time())}"
         self.save_format = save_format.lower()
         self.save_freq = save_freq
+        self.enable_tensorboard = enable_tensorboard
+        self.tensorboard_log_dir = tensorboard_log_dir
         
         # 创建保存目录
         os.makedirs(self.save_dir, exist_ok=True)
@@ -50,6 +57,17 @@ class MetricsLogger:
             self.save_dir, 
             f"{self.experiment_name}_eval_metrics.{self.save_format}"
         )
+        
+        # 初始化TensorBoard SummaryWriter
+        self.writer = None
+        if self.enable_tensorboard:
+            tensorboard_full_path = os.path.join(
+                self.tensorboard_log_dir, 
+                self.experiment_name
+            )
+            os.makedirs(tensorboard_full_path, exist_ok=True)
+            self.writer = SummaryWriter(tensorboard_full_path)
+            logger.info(f"已启用TensorBoard，日志保存在: {tensorboard_full_path}")
         
         # 读取已有的指标（如果存在）
         self._load_existing_metrics()
@@ -83,6 +101,10 @@ class MetricsLogger:
                 'value': metric_value,
                 'timestamp': datetime.now().isoformat()
             })
+            
+            # 记录到TensorBoard
+            if self.enable_tensorboard and self.writer:
+                self.writer.add_scalar(f"train/{metric_name}", metric_value, epoch)
         
         # 按保存频率保存指标
         if epoch % self.save_freq == 0:
@@ -106,6 +128,10 @@ class MetricsLogger:
                 'value': metric_value,
                 'timestamp': datetime.now().isoformat()
             })
+            
+            # 记录到TensorBoard
+            if self.enable_tensorboard and self.writer:
+                self.writer.add_scalar(f"val/{metric_name}", metric_value, epoch)
         
         # 按保存频率保存指标
         if epoch % self.save_freq == 0:
@@ -113,6 +139,68 @@ class MetricsLogger:
             logger.debug(f"保存评估指标到：{self.eval_metrics_path}")
         
         return self
+    
+    def log_histogram(self, name: str, values: np.ndarray, epoch: int, tag: str = "model"):
+        """
+        记录直方图数据到TensorBoard。
+        
+        参数:
+            name (str): 指标名称
+            values (np.ndarray): 值数组
+            epoch (int): 当前轮次
+            tag (str): 标签类别，如'model'、'gradients'等
+        """
+        if self.enable_tensorboard and self.writer:
+            self.writer.add_histogram(f"{tag}/{name}", values, epoch)
+        return self
+    
+    def log_image(self, name: str, image: np.ndarray, epoch: int, tag: str = "images"):
+        """
+        记录图像到TensorBoard。
+        
+        参数:
+            name (str): 图像名称
+            image (np.ndarray): 图像数据
+            epoch (int): 当前轮次
+            tag (str): 标签类别
+        """
+        if self.enable_tensorboard and self.writer:
+            self.writer.add_image(f"{tag}/{name}", image, epoch, dataformats='HWC')
+        return self
+    
+    def log_figure(self, name: str, figure: plt.Figure, epoch: int, tag: str = "plots"):
+        """
+        记录matplotlib图表到TensorBoard。
+        
+        参数:
+            name (str): 图表名称
+            figure (plt.Figure): matplotlib图表
+            epoch (int): 当前轮次
+            tag (str): 标签类别
+        """
+        if self.enable_tensorboard and self.writer:
+            self.writer.add_figure(f"{tag}/{name}", figure, epoch)
+        return self
+    
+    def log_hparams(self, hparams: Dict[str, Any], metrics: Dict[str, float]):
+        """
+        记录超参数到TensorBoard。
+        
+        参数:
+            hparams (Dict[str, Any]): 超参数字典
+            metrics (Dict[str, float]): 与超参数关联的指标结果
+        """
+        if self.enable_tensorboard and self.writer:
+            self.writer.add_hparams(hparams, metrics)
+        return self
+    
+    def close(self):
+        """
+        关闭TensorBoard SummaryWriter。应在训练结束时调用。
+        """
+        if self.enable_tensorboard and self.writer:
+            self.writer.close()
+            logger.info("TensorBoard SummaryWriter已关闭")
     
     def _save_metrics(self, metrics: Dict[str, List[Dict]], path: str):
         """
@@ -467,6 +555,4 @@ class MetricsLogger:
                 if metric_name.startswith('val_'):
                     mode = 'min' if 'loss' in metric_name else 'max'
                     best = self.get_best_epoch(metric_name, mode)
-                    f.write(f"- **{metric_name}**: 轮次 {best['epoch']}, 值 {best['value']:.4f} ({mode}模式)\n")
-        
-        logger.info(f"已生成指标汇总报告：{md_report_path}") 
+                    f.write(f"- **{metric_name}**: 轮次 {best['epoch']}, 值 {best['value']:.4f} ({mode}模式)\n") 

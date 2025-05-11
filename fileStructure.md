@@ -23,6 +23,8 @@ kczy/
 ├── notebooks/          # Jupyter笔记本，用于实验和演示
 ├── scripts/            # 实用脚本，如训练脚本和演示脚本
 ├── docs/               # 文档目录
+├── logs/               # 日志目录
+│   └── tensorboard_test/ # TensorBoard日志示例目录 
 ├── temp_metrics/       # 临时指标存储目录
 │   └── plots/          # 指标可视化图表
 ├── tests/              # 测试代码
@@ -53,7 +55,7 @@ kczy/
 #### 工具函数 (`src/utils/`)
 - `__init__.py` - 工具模块初始化文件
 - `config.py` - 全局配置参数定义
-- `metrics_logger.py` - 性能指标记录和分析工具
+- `metrics_logger.py` - 性能指标记录和分析工具，支持TensorBoard集成，可记录标量指标、直方图、图像和超参数
 - `cli.py` - 命令行接口实现，包含参数解析和处理功能，支持从配置文件加载和组织化参数显示。提供丰富的配置选项，包括：(1)超参数配置：损失函数类型、各种优化器特定参数（如SGD的momentum、Adam的beta值等）和学习率调度器参数（如cosine的t-max、eta-min等）；(2)数据集规范：数据集类型和来源（支持自定义、ImageNet、CIFAR10等多种数据集）、数据拆分（训练/验证/测试比例或预定义目录）、数据增强（旋转、缩放、翻转、颜色调整、Mixup/CutMix等高级增强）、数据预处理（归一化、调整大小方法）和采样策略（加权采样、过采样、欠采样等）
 
 #### 可视化模块 (`src/visualization/`)
@@ -75,6 +77,14 @@ kczy/
 - `*.onnx` - ONNX格式的导出模型
 - `*_config.json` - 模型配置文件
 - `onnx/` - ONNX格式模型专用目录，包含导出的模型及配置文件
+
+### 日志目录 (`logs/`)
+- 存放训练日志和TensorBoard日志文件
+- `tensorboard_test/` - TensorBoard示例日志目录
+  - 包含TensorBoard事件文件用于可视化训练指标
+  - 支持实时监控训练过程中的各种指标（损失、准确率等）
+  - 可视化模型参数和梯度分布的直方图
+  - 记录训练样本图像和可视化结果
 
 ### 文档目录 (`docs/`)
 - `onnx_export.md` - ONNX导出功能使用指南，包含详细示例和注意事项
@@ -98,6 +108,7 @@ kczy/
 - `demo_custom_dataset.py` - 自定义数据集演示
 - `demo_augmentation.py` - 数据增强演示
 - `demo_onnx_export.py` - ONNX导出功能演示脚本，展示模型导出、验证和推理性能比较
+- `test_tensorboard.py` - TensorBoard集成功能测试脚本，演示TensorBoard日志记录和可视化
 - `example_config.json` - 示例配置文件，用于CLI测试
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
@@ -190,7 +201,22 @@ kczy/
      - 准确率曲线可视化: `plot_accuracy()` 生成训练和验证准确率曲线，支持百分比显示和元数据
      - 多指标可视化: `plot_training_history()` 生成多种指标历史曲线，支持批量保存
 
-7. 测试流程：
+7. TensorBoard集成流程：
+   - 训练开始 → 初始化TensorBoard SummaryWriter → 日志保存到`logs/`目录
+   - 训练过程 → MetricsLogger记录指标到TensorBoard → 实时生成事件文件
+   - 运行TensorBoard服务器(tensorboard --logdir=logs) → 访问http://localhost:6006/
+   - 指标记录的类型：
+     - 标量指标：训练损失、验证损失、准确率等
+     - 直方图：模型参数和梯度分布
+     - 图像：训练样本和可视化结果
+     - 超参数：实验配置和最终性能指标
+   - TensorBoard的配置由TrainingConfig中的参数控制：
+     - enable_tensorboard：是否启用TensorBoard
+     - tensorboard_dir：TensorBoard日志目录
+     - log_histograms：是否记录模型参数和梯度直方图
+     - log_images：是否记录样本图像
+
+8. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
    - 指标可视化测试: `test_plot_save.py` 测试图表保存功能，包括时间戳和元数据支持
