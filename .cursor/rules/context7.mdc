@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+    - maintain a file named library.md to store the Library IDs that you search for and before searching make sure that you check the file and use the library ID already available.otherwise, search for it.
+

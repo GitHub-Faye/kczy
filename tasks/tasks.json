@@ -531,7 +531,7 @@
       "details": "Develop functions to visualize the model's attention weights and layer connections. Use matplotlib or similar libraries to generate static visualizations.",
       "id": 10,
       "priority": "low",
-      "status": "pending",
+      "status": "done",
       "testStrategy": "Generate visualizations for a trained model and verify they accurately represent the model structure.",
       "title": "Implement Model Structure Visualization",
       "subtasks": [
@@ -570,7 +570,7 @@
             3
           ],
           "details": "Run the visualization tools on a trained model instance, check for correctness, and refine the visualizations based on feedback.",
-          "status": "pending"
+          "status": "done"
         }
       ]
     }

@@ -105,6 +105,7 @@ kczy/
 - `onnx_export.md` - ONNX导出功能使用指南，包含详细示例和注意事项
 - `tensorboard_usage_guide.md` - TensorBoard使用指南，详细说明启动方式、界面功能及使用技巧
 - `tensorboard_validation_report.md` - TensorBoard验证报告，记录验证过程和测试结果
+- `visualization_testing.md` - 模型可视化测试指南，详细说明可视化测试脚本的使用方法、参数选项和输出文件说明
 
 ### 笔记本目录 (`notebooks/`)
 - 用于存放Jupyter笔记本，进行实验和演示
@@ -125,6 +126,10 @@ kczy/
   - `vit_attention_analysis_*.png` - 不同层和头的注意力分析图
   - `vit_models_comparison_*.png` - 不同模型结构和注意力特性的比较图
   - `vit_visualization_report_*.html` - 包含所有可视化结果的HTML格式报告
+  - `<前缀>_attention_heatmap_<时间戳>.png` - 带时间戳的注意力热力图，支持定制化前缀
+  - `<前缀>_model_structure_<时间戳>.png` - 带时间戳的模型结构图
+  - `<前缀>_comprehensive_visualization_report_<时间戳>.html` - 综合可视化报告，包含完整的模型分析结果
+  - `<前缀>_models_comparison_<时间戳>.png` - 不同模型的结构和注意力特性比较图
 - `simulation_train_metrics.csv` - 模拟训练指标数据
 - `simulation_eval_metrics.csv` - 模拟评估指标数据
 
@@ -142,6 +147,7 @@ kczy/
 - `test_attention_viz.py` - 注意力权重可视化测试脚本，展示如何提取和可视化模型的注意力权重
 - `test_model_viz.py` - 模型结构可视化测试脚本，演示如何生成和保存模型整体结构图、编码器块结构图和层权重可视化
 - `test_static_viz.py` - 静态可视化综合测试脚本，展示如何生成模型概览、注意力分析、综合可视化和模型比较
+- `test_visualization_with_model.py` - 综合可视化测试脚本，实际使用模型（随机初始化或预训练）进行可视化测试，支持多种模型类型、多种图像输入选项和完整的可视化功能测试
 - `example_config.json` - 示例配置文件，用于CLI测试
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
@@ -158,6 +164,7 @@ kczy/
 - `test_model_saving.py` - 模型保存和加载功能测试，包含ONNX导出和推理验证
 - `test_optimizer_saving.py` - 优化器状态保存和恢复功能测试
 - `test_cli.py` - 命令行参数解析功能的全面测试，包含基本功能、参数类型与配置文件加载测试
+- `test_visualization_script.py` - 可视化测试脚本的单元测试，验证脚本的参数解析、模型创建、图像加载和各类可视化功能
 - `test_tensorboard_cli.py` - TensorBoard相关CLI选项的测试，验证参数解析和配置文件加载
 - `test_tensorboard_utils.py` - TensorBoard工具模块测试，验证TensorBoard服务器的启动、检查和停止功能
 - `test_tensorboard_web_interface.py` - TensorBoard Web界面验证测试，测试界面可访问性和数据显示功能
@@ -247,6 +254,7 @@ kczy/
 7. 注意力权重可视化流程:
    - ViT模型 → `return_attention=True` 参数 → 返回注意力权重列表
    - 注意力权重 → `src/visualization/attention_viz.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
+   - 可视化测试流程: ViT模型(随机初始化/预训练) → `scripts/test_visualization_with_model.py` → 全面测试所有可视化功能
    - 注意力可视化支持三种主要功能:
      - 热力图可视化: `plot_attention_weights()` 生成层级或特定头的注意力热力图
      - 图像叠加可视化: `visualize_attention_on_image()` 将注意力权重叠加到原始图像上
@@ -273,7 +281,9 @@ kczy/
    - 综合可视化: `create_comprehensive_visualization()` → 生成包含所有可视化类型的完整套件
    - 模型比较: `compare_models()` → 比较多个模型的结构和注意力特性
    - HTML报告: `generate_visualization_report()` → 生成包含所有可视化结果的网页报告
-   - 测试流程: `scripts/test_static_viz.py` → 演示和验证静态可视化功能
+   - 单组件测试: `scripts/test_static_viz.py` → 演示和验证各静态可视化组件功能
+   - 综合测试: `scripts/test_visualization_with_model.py` → 使用实际模型进行所有可视化功能的全面测试，支持多种配置
+   - 单元测试: `tests/test_visualization_script.py` → 验证测试脚本功能和准确性
    - 多种输出格式支持: PNG、JPG、SVG、PDF等图像格式，以及HTML格式报告
    - 支持定制化: 可自定义图像尺寸、分辨率、标题和输出路径
 
