@@ -43,11 +43,14 @@ Testing confirmed all functionality works, producing:
 Minor Chinese font warnings were observed but didn't affect functionality.
 </info added on 2025-05-11T16:14:42.440Z>
 
-## 2. Plotting layer connections [pending]
+## 2. Plotting layer connections [done]
 ### Dependencies: None
 ### Description: Generate diagrams or graphs that illustrate the connections between different layers of the model.
 ### Details:
 Use tools like Graphviz or matplotlib to create visualizations of the model's architecture, showing how layers are interconnected.
+<info added on 2025-05-12T02:51:00.652Z>
+Successfully implemented Vision Transformer model layer connection visualization. Key achievements include: 1. Created a new `model_viz.py` module with three main visualization functions: `plot_model_structure` for overall model architecture, `plot_encoder_block` for detailed Transformer encoder block structure, and `visualize_layer_weights` for layer weight analysis. 2. Implemented two visualization methods: Graphviz for clear directed graphs (primary) and Matplotlib as a fallback. 3. Updated `src/visualization/__init__.py` for seamless integration. 4. Developed a comprehensive test script `scripts/test_model_viz.py` with CLI support for model type selection, output format customization, and default encoder block visualization. 5. Saved visualizations in `temp_metrics/plots` with Chinese labels for clarity.
+</info added on 2025-05-12T02:51:00.652Z>
 
 ## 3. Generating static visualizations [pending]
 ### Dependencies: 10.1, 10.2

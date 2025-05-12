@@ -60,7 +60,7 @@ kczy/
 - `cli.py` - 命令行接口实现，包含参数解析和处理功能，支持从配置文件加载和组织化参数显示。提供丰富的配置选项，包括：(1)超参数配置：损失函数类型、各种优化器特定参数（如SGD的momentum、Adam的beta值等）和学习率调度器参数（如cosine的t-max、eta-min等）；(2)数据集规范：数据集类型和来源（支持自定义、ImageNet、CIFAR10等多种数据集）、数据拆分（训练/验证/测试比例或预定义目录）、数据增强（旋转、缩放、翻转、颜色调整、Mixup/CutMix等高级增强）、数据预处理（归一化、调整大小方法）和采样策略（加权采样、过采样、欠采样等）
 
 #### 可视化模块 (`src/visualization/`)
-- `__init__.py` - 可视化模块初始化文件，导出指标绘图功能
+- `__init__.py` - 可视化模块初始化文件，导出指标绘图、注意力可视化和模型结构可视化功能
 - `metrics_plots.py` - 指标绘图模块，用于绘制训练和评估指标的可视化图表
   - `save_plot()` - 通用图表保存函数，支持自动添加时间戳和保存元数据
   - `plot_loss()` - 绘制训练和验证损失曲线，支持保存到文件并可添加时间戳和元数据
@@ -70,6 +70,10 @@ kczy/
   - `plot_attention_weights()` - 生成注意力热力图，可视化模型中特定层和头的注意力分布
   - `visualize_attention_on_image()` - 将注意力权重叠加到原始图像上，直观展示模型关注的区域
   - `visualize_all_heads()` - 同时展示特定层的所有注意力头，方便对比不同头关注的区域差异
+- `model_viz.py` - 模型结构可视化模块，用于展示Vision Transformer模型的整体结构和层连接
+  - `plot_model_structure()` - 生成整体模型结构图，展示从输入到输出的数据流和主要组件间的连接
+  - `plot_encoder_block()` - 详细展示Transformer编码器块的内部结构，包括多头注意力、MLP和残差连接
+  - `visualize_layer_weights()` - 分析并可视化模型中各层权重的分布和连接强度，包括权重范数、层间相似度和连接示意图
 
 ### 数据目录 (`data/`)
 - `examples/` - 存放示例数据
@@ -107,6 +111,10 @@ kczy/
   - `attention_heatmap.png` - 注意力权重热力图
   - `attention_on_image.png` - 注意力权重与原始图像叠加图
   - `all_attention_heads.png` - 多头注意力可视化图
+  - `vit_*_structure.png` - 模型整体结构图，展示模型各组件和数据流向
+  - `vit_encoder_block_default.png` - 编码器块通用结构图，展示编码器块的内部组件和连接
+  - `vit_*_encoder_block.png` - 特定模型编码器块结构图，带有实际模型参数
+  - `vit_*_layer_weights.png` - 模型层权重分析图，包含权重分布、层间相似度和连接示意图
 - `simulation_train_metrics.csv` - 模拟训练指标数据
 - `simulation_eval_metrics.csv` - 模拟评估指标数据
 
@@ -122,6 +130,7 @@ kczy/
 - `start_tensorboard.py` - TensorBoard启动脚本，提供独立的TensorBoard启动功能
 - `verify_tensorboard_web.py` - TensorBoard Web界面验证脚本，运行测试并生成报告
 - `test_attention_viz.py` - 注意力权重可视化测试脚本，展示如何提取和可视化模型的注意力权重
+- `test_model_viz.py` - 模型结构可视化测试脚本，演示如何生成和保存模型整体结构图、编码器块结构图和层权重可视化
 - `example_config.json` - 示例配置文件，用于CLI测试
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
@@ -232,7 +241,21 @@ kczy/
      - 图像叠加可视化: `visualize_attention_on_image()` 将注意力权重叠加到原始图像上
      - 多头对比可视化: `visualize_all_heads()` 并排展示所有注意力头，便于比较不同头的关注区域
 
-8. TensorBoard集成流程：
+8. 模型结构可视化流程:
+   - ViT模型实例 → `src/visualization/model_viz.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
+   - 支持多种可视化方式:
+     - 整体结构可视化: `plot_model_structure()` 生成从输入到输出的完整模型结构图
+     - 编码器块详情: `plot_encoder_block()` 展示单个Transformer编码器块的内部结构和数据流
+     - 层权重分析: `visualize_layer_weights()` 分析模型各层权重并展示层间关系和连接强度
+   - 提供双重实现:
+     - Graphviz实现: 生成高质量的有向图，支持多种输出格式(PNG/SVG/PDF)
+     - Matplotlib实现: 作为备选方案，无需额外依赖也能生成模型结构图
+   - 支持不同的可视化配置:
+     - 自定义方向: 支持垂直布局(上到下)或水平布局(左到右)
+     - 详细程度控制: 支持简略或详细显示内部组件
+     - 格式选择: 支持多种输出格式，适应不同用途
+
+9. TensorBoard集成流程：
    - 训练开始 → 初始化TensorBoard SummaryWriter → 日志保存到`logs/`目录
    - 训练过程 → MetricsLogger记录指标到TensorBoard → 实时生成事件文件
    - TensorBoard启动方式：
@@ -258,7 +281,7 @@ kczy/
    - 命令行参数优先级高于配置文件设置
    - TensorBoard工具模块(tensorboard_utils.py)提供了启动、检查和停止TensorBoard的通用功能
 
-9. 测试流程：
+10. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
    - 指标可视化测试: `test_plot_save.py` 测试图表保存功能，包括时间戳和元数据支持

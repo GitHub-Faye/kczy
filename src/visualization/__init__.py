@@ -1,15 +1,43 @@
 """
-可视化模块，用于生成训练和评估指标的可视化图表。
+可视化模块，提供各种可视化功能。
 """
-from src.visualization.metrics_plots import plot_loss, plot_accuracy, plot_training_history, save_plot
-from src.visualization.attention_viz import plot_attention_weights, visualize_attention_on_image, visualize_all_heads
+
+# 导出指标绘图功能
+from .metrics_plots import (
+    save_plot,
+    plot_loss,
+    plot_accuracy,
+    plot_training_history
+)
+
+# 导出注意力可视化功能
+from .attention_viz import (
+    plot_attention_weights,
+    visualize_attention_on_image,
+    visualize_all_heads
+)
+
+# 导出模型结构可视化功能
+from .model_viz import (
+    plot_model_structure,
+    plot_encoder_block,
+    visualize_layer_weights
+)
 
 __all__ = [
+    # 指标绘图
+    'save_plot',
     'plot_loss',
     'plot_accuracy',
     'plot_training_history',
-    'save_plot',
+    
+    # 注意力可视化
     'plot_attention_weights',
     'visualize_attention_on_image',
-    'visualize_all_heads'
+    'visualize_all_heads',
+    
+    # 模型结构可视化
+    'plot_model_structure',
+    'plot_encoder_block',
+    'visualize_layer_weights'
 ] 
