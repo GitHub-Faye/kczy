@@ -24,6 +24,15 @@ from .model_viz import (
     visualize_layer_weights
 )
 
+# 导出静态可视化功能
+from .static_viz import (
+    create_model_overview,
+    create_attention_analysis,
+    create_comprehensive_visualization,
+    compare_models,
+    generate_visualization_report
+)
+
 __all__ = [
     # 指标绘图
     'save_plot',
@@ -39,5 +48,12 @@ __all__ = [
     # 模型结构可视化
     'plot_model_structure',
     'plot_encoder_block',
-    'visualize_layer_weights'
+    'visualize_layer_weights',
+    
+    # 静态可视化
+    'create_model_overview',
+    'create_attention_analysis',
+    'create_comprehensive_visualization',
+    'compare_models',
+    'generate_visualization_report'
 ] 

@@ -60,7 +60,7 @@ kczy/
 - `cli.py` - 命令行接口实现，包含参数解析和处理功能，支持从配置文件加载和组织化参数显示。提供丰富的配置选项，包括：(1)超参数配置：损失函数类型、各种优化器特定参数（如SGD的momentum、Adam的beta值等）和学习率调度器参数（如cosine的t-max、eta-min等）；(2)数据集规范：数据集类型和来源（支持自定义、ImageNet、CIFAR10等多种数据集）、数据拆分（训练/验证/测试比例或预定义目录）、数据增强（旋转、缩放、翻转、颜色调整、Mixup/CutMix等高级增强）、数据预处理（归一化、调整大小方法）和采样策略（加权采样、过采样、欠采样等）
 
 #### 可视化模块 (`src/visualization/`)
-- `__init__.py` - 可视化模块初始化文件，导出指标绘图、注意力可视化和模型结构可视化功能
+- `__init__.py` - 可视化模块初始化文件，导出指标绘图、注意力可视化、模型结构可视化和静态可视化功能
 - `metrics_plots.py` - 指标绘图模块，用于绘制训练和评估指标的可视化图表
   - `save_plot()` - 通用图表保存函数，支持自动添加时间戳和保存元数据
   - `plot_loss()` - 绘制训练和验证损失曲线，支持保存到文件并可添加时间戳和元数据
@@ -74,6 +74,12 @@ kczy/
   - `plot_model_structure()` - 生成整体模型结构图，展示从输入到输出的数据流和主要组件间的连接
   - `plot_encoder_block()` - 详细展示Transformer编码器块的内部结构，包括多头注意力、MLP和残差连接
   - `visualize_layer_weights()` - 分析并可视化模型中各层权重的分布和连接强度，包括权重范数、层间相似度和连接示意图
+- `static_viz.py` - 静态可视化综合模块，整合注意力权重和模型结构可视化为一套连贯的静态图表
+  - `create_model_overview()` - 生成模型结构概览图，包含模型结构和主要参数信息
+  - `create_attention_analysis()` - 生成注意力权重分析图，包含注意力热力图和图像叠加视图
+  - `create_comprehensive_visualization()` - 生成一套完整的可视化图表，包括模型结构、注意力权重和层连接
+  - `compare_models()` - 比较多个模型的结构和注意力特性，支持并排展示不同模型的参数和注意力特征
+  - `generate_visualization_report()` - 生成包含各种可视化结果的HTML格式报告，便于整体查看和分享
 
 ### 数据目录 (`data/`)
 - `examples/` - 存放示例数据
@@ -115,6 +121,10 @@ kczy/
   - `vit_encoder_block_default.png` - 编码器块通用结构图，展示编码器块的内部组件和连接
   - `vit_*_encoder_block.png` - 特定模型编码器块结构图，带有实际模型参数
   - `vit_*_layer_weights.png` - 模型层权重分析图，包含权重分布、层间相似度和连接示意图
+  - `vit_model_overview_*.png` - 模型结构和参数信息的概览图
+  - `vit_attention_analysis_*.png` - 不同层和头的注意力分析图
+  - `vit_models_comparison_*.png` - 不同模型结构和注意力特性的比较图
+  - `vit_visualization_report_*.html` - 包含所有可视化结果的HTML格式报告
 - `simulation_train_metrics.csv` - 模拟训练指标数据
 - `simulation_eval_metrics.csv` - 模拟评估指标数据
 
@@ -131,6 +141,7 @@ kczy/
 - `verify_tensorboard_web.py` - TensorBoard Web界面验证脚本，运行测试并生成报告
 - `test_attention_viz.py` - 注意力权重可视化测试脚本，展示如何提取和可视化模型的注意力权重
 - `test_model_viz.py` - 模型结构可视化测试脚本，演示如何生成和保存模型整体结构图、编码器块结构图和层权重可视化
+- `test_static_viz.py` - 静态可视化综合测试脚本，展示如何生成模型概览、注意力分析、综合可视化和模型比较
 - `example_config.json` - 示例配置文件，用于CLI测试
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
@@ -255,7 +266,18 @@ kczy/
      - 详细程度控制: 支持简略或详细显示内部组件
      - 格式选择: 支持多种输出格式，适应不同用途
 
-9. TensorBoard集成流程：
+9. 静态可视化综合流程:
+   - ViT模型实例 + 输入图像 → `src/visualization/static_viz.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
+   - 模型概览: `create_model_overview()` → 生成模型结构和参数信息的综合图表
+   - 注意力分析: `create_attention_analysis()` → 生成注意力热力图和图像叠加视图
+   - 综合可视化: `create_comprehensive_visualization()` → 生成包含所有可视化类型的完整套件
+   - 模型比较: `compare_models()` → 比较多个模型的结构和注意力特性
+   - HTML报告: `generate_visualization_report()` → 生成包含所有可视化结果的网页报告
+   - 测试流程: `scripts/test_static_viz.py` → 演示和验证静态可视化功能
+   - 多种输出格式支持: PNG、JPG、SVG、PDF等图像格式，以及HTML格式报告
+   - 支持定制化: 可自定义图像尺寸、分辨率、标题和输出路径
+
+10. TensorBoard集成流程：
    - 训练开始 → 初始化TensorBoard SummaryWriter → 日志保存到`logs/`目录
    - 训练过程 → MetricsLogger记录指标到TensorBoard → 实时生成事件文件
    - TensorBoard启动方式：
@@ -281,7 +303,7 @@ kczy/
    - 命令行参数优先级高于配置文件设置
    - TensorBoard工具模块(tensorboard_utils.py)提供了启动、检查和停止TensorBoard的通用功能
 
-10. 测试流程：
+11. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
    - 指标可视化测试: `test_plot_save.py` 测试图表保存功能，包括时间戳和元数据支持
