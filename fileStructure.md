@@ -19,9 +19,8 @@ kczy/
 │   ├── examples/       # 示例数据
 │   └── images/         # 图像文件
 ├── models/             # 训练好的模型保存目录
-│   └── onnx/           # ONNX格式模型目录
 ├── notebooks/          # Jupyter笔记本，用于实验和演示
-├── scripts/            # 实用脚本，如训练脚本和演示脚本
+├── scripts/            # 实用脚本，如演示脚本和测试脚本
 ├── docs/               # 文档目录
 ├── logs/               # 日志目录
 │   └── tensorboard_test/ # TensorBoard日志示例目录 
@@ -88,10 +87,6 @@ kczy/
 
 ### 模型目录 (`models/`)
 - 用于存储训练好的模型权重和配置
-- `*.pt`/`*.pth` - PyTorch格式的模型权重和配置
-- `*.onnx` - ONNX格式的导出模型
-- `*_config.json` - 模型配置文件
-- `onnx/` - ONNX格式模型专用目录，包含导出的模型及配置文件
 
 ### 日志目录 (`logs/`)
 - 存放训练日志和TensorBoard日志文件
@@ -134,14 +129,10 @@ kczy/
 - `simulation_eval_metrics.csv` - 模拟评估指标数据
 
 ### 脚本目录 (`scripts/`)
-- `train.py` - 主训练脚本，使用命令行参数配置训练过程
-- `train_with_config.py` - 使用配置文件进行模型训练
-- `test_training_loop.py` - 测试训练循环
 - `test_cli.py` - 命令行参数解析功能测试脚本
 - `demo_custom_dataset.py` - 自定义数据集演示
 - `demo_augmentation.py` - 数据增强演示
 - `demo_onnx_export.py` - ONNX导出功能演示脚本，展示模型导出、验证和推理性能比较
-- `test_tensorboard.py` - TensorBoard集成功能测试脚本，演示TensorBoard日志记录和可视化
 - `start_tensorboard.py` - TensorBoard启动脚本，提供独立的TensorBoard启动功能
 - `verify_tensorboard_web.py` - TensorBoard Web界面验证脚本，运行测试并生成报告
 - `test_attention_viz.py` - 注意力权重可视化测试脚本，展示如何提取和可视化模型的注意力权重
@@ -177,8 +168,6 @@ kczy/
   - `cli_tests/` - CLI测试输出目录
     - `integration/` - CLI集成测试输出子目录，包含各类测试场景的结果
     - `temp_configs/` - 测试用临时配置文件
-    - `extended_test_config.json` - 扩展测试用JSON配置文件
-    - `extended_test_config.yaml` - 扩展测试用YAML配置文件
 
 ### 任务目录 (`tasks/`)
 - `tasks.json` - 任务定义文件
@@ -186,14 +175,11 @@ kczy/
 
 ### 报告目录 (`reports/`)
 - 用于存放测试报告和验证结果
-- `tensorboard_web_test_results.xml` - TensorBoard Web界面测试的XML格式报告
-- `tensorboard_web_test_results.html` - TensorBoard Web界面测试的HTML格式报告
 
 ### 其他文件
 - `requirements.txt` - 项目依赖列表
 - `.taskmasterconfig` - 任务管理器配置文件
 - `prd.txt` - 产品需求文档
-- `test_setup.py` - 测试环境设置
 - `.gitignore` - Git忽略文件配置
 - `.env.example` - 环境变量示例文件
 
@@ -215,7 +201,6 @@ kczy/
    - 用户提供命令行参数 → `src/utils/cli.py` 解析参数 → 转换为配置对象 → 用于训练和评估
    - 配置文件通过 `src/utils/cli.py` 的 `load_config()` 函数加载，与命令行参数结合
    - 命令行参数覆盖配置文件中的参数，提供灵活配置能力
-   - `scripts/train.py` 是命令行接口的主要入口点，实现了参数解析和配置创建
    - CLI支持全面的训练配置，包括:
      - 模型超参数：各种优化器参数、学习率调度策略、损失函数类型
      - 数据集配置：数据集类型、拆分策略、增强选项、预处理方法、采样策略
@@ -291,9 +276,8 @@ kczy/
    - 训练开始 → 初始化TensorBoard SummaryWriter → 日志保存到`logs/`目录
    - 训练过程 → MetricsLogger记录指标到TensorBoard → 实时生成事件文件
    - TensorBoard启动方式：
-     - 通过CLI参数：`--start-tensorboard` → 训练脚本自动启动TensorBoard服务器
-     - 独立脚本：`python scripts/start_tensorboard.py` → 单独启动TensorBoard服务器
      - 代码调用：`start_tensorboard()` → 在代码中启动TensorBoard
+     - 独立脚本：`python scripts/start_tensorboard.py` → 单独启动TensorBoard服务器
    - 访问TensorBoard：http://localhost:6006/（默认）或自定义主机和端口
    - 指标记录的类型：
      - 标量指标：训练损失、验证损失、准确率等
@@ -316,7 +300,6 @@ kczy/
 11. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
-   - 指标可视化测试: `test_plot_save.py` 测试图表保存功能，包括时间戳和元数据支持
    - CLI测试流程: 从基础单元测试(`test_cli.py`)到边界条件测试(`cli_test_edge_cases.py`)再到集成测试(`cli_integration_test.py`)，系统性验证CLI功能的正确性和健壮性
    - 综合CLI测试: `run_all_cli_tests.py`集成运行所有CLI测试并生成详细报告，支持中文输出和完整测试统计
 
