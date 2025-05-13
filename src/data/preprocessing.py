@@ -368,4 +368,69 @@ def create_image_preprocessing_pipeline(
     if normalize:
         transform_list.append(transforms.Normalize(mean=mean, std=std))
     
-    return transforms.Compose(transform_list) 
+    return transforms.Compose(transform_list)
+
+def normalize_image(
+    image: torch.Tensor,
+    mean: List[float] = [0.485, 0.456, 0.406],
+    std: List[float] = [0.229, 0.224, 0.225]
+) -> torch.Tensor:
+    """
+    归一化图像
+    
+    参数:
+        image (torch.Tensor): 输入图像，形状为(C, H, W)
+        mean (List[float]): 各通道均值
+        std (List[float]): 各通道标准差
+        
+    返回:
+        torch.Tensor: 归一化后的图像
+    """
+    if not isinstance(image, torch.Tensor):
+        raise TypeError(f"图像必须是torch.Tensor类型，而不是{type(image)}")
+    
+    if image.dim() != 3:
+        raise ValueError(f"图像必须是3维张量(C, H, W)，而不是{image.dim()}维")
+    
+    # 确保mean和std是tensor并且维度正确
+    mean_tensor = torch.tensor(mean, dtype=image.dtype, device=image.device).view(-1, 1, 1)
+    std_tensor = torch.tensor(std, dtype=image.dtype, device=image.device).view(-1, 1, 1)
+    
+    # 应用归一化：(x - mean) / std
+    normalized_image = (image - mean_tensor) / std_tensor
+    
+    return normalized_image
+
+def denormalize_image(
+    image: torch.Tensor,
+    mean: List[float] = [0.485, 0.456, 0.406],
+    std: List[float] = [0.229, 0.224, 0.225]
+) -> torch.Tensor:
+    """
+    将归一化后的图像转换回原始范围，用于可视化
+    
+    参数:
+        image (torch.Tensor): 归一化后的图像，形状为(C, H, W)
+        mean (List[float]): 各通道均值
+        std (List[float]): 各通道标准差
+        
+    返回:
+        torch.Tensor: 反归一化后的图像
+    """
+    if not isinstance(image, torch.Tensor):
+        raise TypeError(f"图像必须是torch.Tensor类型，而不是{type(image)}")
+    
+    if image.dim() != 3:
+        raise ValueError(f"图像必须是3维张量(C, H, W)，而不是{image.dim()}维")
+    
+    # 确保mean和std是tensor并且维度正确
+    mean_tensor = torch.tensor(mean, dtype=image.dtype, device=image.device).view(-1, 1, 1)
+    std_tensor = torch.tensor(std, dtype=image.dtype, device=image.device).view(-1, 1, 1)
+    
+    # 应用反归一化：x * std + mean
+    denormalized_image = image * std_tensor + mean_tensor
+    
+    # 裁剪到[0, 1]范围
+    denormalized_image = torch.clamp(denormalized_image, 0, 1)
+    
+    return denormalized_image 

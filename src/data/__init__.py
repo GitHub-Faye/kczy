@@ -4,7 +4,8 @@ from .data_loader import (
     create_dataloaders_from_config,
     get_transforms,
     TransformWrapper,
-    collate_fn
+    collate_fn,
+    verify_dataset_splits
 )
 from .preprocessing import (
     standardize_data,
@@ -17,7 +18,9 @@ from .preprocessing import (
     remove_outliers,
     clip_outliers,
     PreprocessingPipeline,
-    create_image_preprocessing_pipeline
+    create_image_preprocessing_pipeline,
+    normalize_image,
+    denormalize_image
 )
 from .augmentation import (
     RandomRotate,
@@ -49,6 +52,7 @@ __all__ = [
     'get_transforms',
     'TransformWrapper',
     'collate_fn',
+    'verify_dataset_splits',
     
     # 数据增强
     'RandomRotate',
@@ -86,5 +90,7 @@ __all__ = [
     'remove_outliers',
     'clip_outliers',
     'PreprocessingPipeline',
-    'create_image_preprocessing_pipeline'
+    'create_image_preprocessing_pipeline',
+    'normalize_image',
+    'denormalize_image'
 ] 

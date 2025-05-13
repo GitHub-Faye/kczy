@@ -37,12 +37,19 @@ kczy/
 
 #### 数据处理模块 (`src/data/`)
 - `__init__.py` - 模块初始化文件，暴露关键数据处理接口
-- `config.py` - 数据处理相关配置参数定义
-- `custom_dataset.py` - 自定义数据集类实现
-- `data_loader.py` - 数据加载器实现
-- `dataset.py` - 基本数据集类定义
-- `preprocessing.py` - 数据预处理函数
-- `augmentation.py` - 数据增强方法实现
+- `config.py` - 数据处理相关配置参数定义，包含DatasetConfig类用于管理数据集参数
+- `custom_dataset.py` - 自定义数据集类实现，支持图像分类任务
+- `data_loader.py` - 数据加载器实现，提供创建训练/验证/测试数据加载器功能
+  - `create_dataloaders()` - 创建数据加载器，支持70%/20%/10%的训练/验证/测试集划分
+  - `create_dataloaders_from_config()` - 基于配置对象创建数据加载器
+  - `get_transforms()` - 获取数据变换函数，支持归一化和数据增强
+  - `verify_dataset_splits()` - 验证数据集拆分是否符合预期比例
+- `dataset.py` - 基本数据集类定义，提供数据加载基础功能
+- `preprocessing.py` - 数据预处理函数集合
+  - `normalize_image()` - 图像归一化处理函数
+  - `denormalize_image()` - 图像归一化逆操作函数
+  - 其他数据预处理工具如标准化、缺失值填充、异常值处理等
+- `augmentation.py` - 数据增强方法实现，提供多种图像增强选项
 
 #### 模型模块 (`src/models/`)
 - `__init__.py` - 模型模块初始化文件，导出模型类和模型工具函数
@@ -132,6 +139,7 @@ kczy/
 - `test_cli.py` - 命令行参数解析功能测试脚本
 - `demo_custom_dataset.py` - 自定义数据集演示
 - `demo_augmentation.py` - 数据增强演示
+- `demo_data_loader.py` - 数据加载器演示脚本，展示数据集加载、三部分拆分和可视化功能
 - `demo_onnx_export.py` - ONNX导出功能演示脚本，展示模型导出、验证和推理性能比较
 - `start_tensorboard.py` - TensorBoard启动脚本，提供独立的TensorBoard启动功能
 - `verify_tensorboard_web.py` - TensorBoard Web界面验证脚本，运行测试并生成报告
