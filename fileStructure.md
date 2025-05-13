@@ -127,6 +127,8 @@ kczy/
 - `demo_data_loader.py` - 数据加载器演示脚本，展示数据集加载、三部分拆分和可视化功能
 - `demo_onnx_export.py` - ONNX导出功能演示脚本，展示模型导出、验证和推理性能比较
 - `demo_training_config.py` - 训练配置演示脚本，展示如何创建、保存、加载训练配置和设置TensorBoard
+- `train_model.py` - 主训练脚本，提供完整的命令行参数解析和模型训练功能，支持各种训练参数配置、检查点保存/恢复和TensorBoard集成
+- `demo_model_training.py` - 模型训练演示脚本，使用小型数据集进行快速训练和验证，展示完整的训练流程，包括数据准备、模型创建、训练循环和评估
 - `start_tensorboard.py` - TensorBoard启动脚本，提供独立的TensorBoard启动功能
 - `verify_tensorboard_web.py` - TensorBoard Web界面验证脚本，运行测试并生成报告
 - `test_attention_viz.py` - 注意力权重可视化测试脚本，展示如何提取和可视化模型的注意力权重
@@ -147,6 +149,7 @@ kczy/
 - `test_preprocessing.py` - 数据预处理测试
 - `test_data_loader.py` - 数据加载器测试
 - `test_metrics_logger.py` - 性能指标记录工具测试
+- `test_model_training.py` - 模型训练功能测试，验证训练循环、反向传播、损失计算、指标记录和检查点保存/加载功能
 - `test_model_saving.py` - 模型保存和加载功能测试，包含ONNX导出和推理验证
 - `test_optimizer_saving.py` - 优化器状态保存和恢复功能测试
 - `test_train_config.py` - 训练配置管理功能测试，包括创建、验证、保存、加载配置和与训练循环的集成

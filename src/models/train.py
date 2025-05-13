@@ -614,7 +614,7 @@ class TrainingLoop:
                     "best_val_loss": best_val_loss if val_loader is not None else None,
                     "train_metrics": train_metrics,
                     "val_metrics": val_metrics if val_loader is not None else None,
-                    "early_stopping_count": early_stopping_count if early_stopping else None
+                    "early_stopping_count": patience_counter if early_stopping else None
                 }
                 
                 # 保存检查点
