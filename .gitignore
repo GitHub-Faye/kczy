@@ -27,6 +27,6 @@ node_modules/
 
 # Task files
 
-data/
+/data/
 
 *.pyc
