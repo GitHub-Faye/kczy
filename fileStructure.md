@@ -57,10 +57,18 @@ kczy/
 - `train.py` - 模型训练循环实现，支持检查点保存和恢复
 - `optimizer_manager.py` - 优化器管理类，包含优化器状态保存和恢复功能
 - `model_utils.py` - 模型和优化器状态保存、加载和转换工具函数，支持多种格式（PyTorch、ONNX）和完整训练状态恢复，包含ONNX模型验证、优化和简化功能
+- `train_config.py` - 训练配置管理模块，提供训练参数的创建、验证、保存和加载功能
+  - `create_training_config()` - 创建训练配置，支持多种来源（命令行参数、配置字典、配置文件、预定义配置文件）
+  - `validate_training_params()` - 验证训练参数的有效性并提供详细反馈
+  - `print_training_config()` - 格式化打印配置摘要，便于调试
+  - `setup_tensorboard()` - 配置TensorBoard，包括启动服务器和创建SummaryWriter
+  - `save_training_config()/load_training_config()` - 保存/加载训练配置，支持JSON和YAML格式
+  - `get_device_info()` - 获取设备信息（CPU/GPU）及其特性
+  - `get_optimal_config_for_device()` - 自动生成适合当前设备的最优配置
 
 #### 工具函数 (`src/utils/`)
 - `__init__.py` - 工具模块初始化文件
-- `config.py` - 全局配置参数定义
+- `config.py` - 全局配置参数定义，包含TrainingConfig类用于管理模型训练参数
 - `metrics_logger.py` - 性能指标记录和分析工具，支持TensorBoard集成，可记录标量指标、直方图、图像和超参数
 - `tensorboard_utils.py` - TensorBoard工具模块，提供TensorBoard启动、检查和停止功能
 - `cli.py` - 命令行接口实现，包含参数解析和处理功能，支持从配置文件加载和组织化参数显示。提供丰富的配置选项，包括：(1)超参数配置：损失函数类型、各种优化器特定参数（如SGD的momentum、Adam的beta值等）和学习率调度器参数（如cosine的t-max、eta-min等）；(2)数据集规范：数据集类型和来源（支持自定义、ImageNet、CIFAR10等多种数据集）、数据拆分（训练/验证/测试比例或预定义目录）、数据增强（旋转、缩放、翻转、颜色调整、Mixup/CutMix等高级增强）、数据预处理（归一化、调整大小方法）和采样策略（加权采样、过采样、欠采样等）
@@ -112,41 +120,20 @@ kczy/
 ### 笔记本目录 (`notebooks/`)
 - 用于存放Jupyter笔记本，进行实验和演示
 
-### 临时指标目录 (`temp_metrics/`)
-- `plots/` - 存放指标可视化图表
-  - `loss_curve.png` - 损失曲线图
-  - `accuracy_curve.png` - 准确率曲线图
-  - `learning_rate_curve.png` - 学习率曲线图
-  - `attention_heatmap.png` - 注意力权重热力图
-  - `attention_on_image.png` - 注意力权重与原始图像叠加图
-  - `all_attention_heads.png` - 多头注意力可视化图
-  - `vit_*_structure.png` - 模型整体结构图，展示模型各组件和数据流向
-  - `vit_encoder_block_default.png` - 编码器块通用结构图，展示编码器块的内部组件和连接
-  - `vit_*_encoder_block.png` - 特定模型编码器块结构图，带有实际模型参数
-  - `vit_*_layer_weights.png` - 模型层权重分析图，包含权重分布、层间相似度和连接示意图
-  - `vit_model_overview_*.png` - 模型结构和参数信息的概览图
-  - `vit_attention_analysis_*.png` - 不同层和头的注意力分析图
-  - `vit_models_comparison_*.png` - 不同模型结构和注意力特性的比较图
-  - `vit_visualization_report_*.html` - 包含所有可视化结果的HTML格式报告
-  - `<前缀>_attention_heatmap_<时间戳>.png` - 带时间戳的注意力热力图，支持定制化前缀
-  - `<前缀>_model_structure_<时间戳>.png` - 带时间戳的模型结构图
-  - `<前缀>_comprehensive_visualization_report_<时间戳>.html` - 综合可视化报告，包含完整的模型分析结果
-  - `<前缀>_models_comparison_<时间戳>.png` - 不同模型的结构和注意力特性比较图
-- `simulation_train_metrics.csv` - 模拟训练指标数据
-- `simulation_eval_metrics.csv` - 模拟评估指标数据
-
 ### 脚本目录 (`scripts/`)
 - `test_cli.py` - 命令行参数解析功能测试脚本
 - `demo_custom_dataset.py` - 自定义数据集演示
 - `demo_augmentation.py` - 数据增强演示
 - `demo_data_loader.py` - 数据加载器演示脚本，展示数据集加载、三部分拆分和可视化功能
 - `demo_onnx_export.py` - ONNX导出功能演示脚本，展示模型导出、验证和推理性能比较
+- `demo_training_config.py` - 训练配置演示脚本，展示如何创建、保存、加载训练配置和设置TensorBoard
 - `start_tensorboard.py` - TensorBoard启动脚本，提供独立的TensorBoard启动功能
 - `verify_tensorboard_web.py` - TensorBoard Web界面验证脚本，运行测试并生成报告
 - `test_attention_viz.py` - 注意力权重可视化测试脚本，展示如何提取和可视化模型的注意力权重
 - `test_model_viz.py` - 模型结构可视化测试脚本，演示如何生成和保存模型整体结构图、编码器块结构图和层权重可视化
 - `test_static_viz.py` - 静态可视化综合测试脚本，展示如何生成模型概览、注意力分析、综合可视化和模型比较
 - `test_visualization_with_model.py` - 综合可视化测试脚本，实际使用模型（随机初始化或预训练）进行可视化测试，支持多种模型类型、多种图像输入选项和完整的可视化功能测试
+- `run_config_tests.py` - 训练配置测试运行脚本，用于验证训练配置管理模块的正确性
 - `example_config.json` - 示例配置文件，用于CLI测试
 - `task-complexity-report.json` - 任务复杂度报告
 - `example_prd.txt` - 示例产品需求文档
@@ -162,6 +149,7 @@ kczy/
 - `test_metrics_logger.py` - 性能指标记录工具测试
 - `test_model_saving.py` - 模型保存和加载功能测试，包含ONNX导出和推理验证
 - `test_optimizer_saving.py` - 优化器状态保存和恢复功能测试
+- `test_train_config.py` - 训练配置管理功能测试，包括创建、验证、保存、加载配置和与训练循环的集成
 - `test_cli.py` - 命令行参数解析功能的全面测试，包含基本功能、参数类型与配置文件加载测试
 - `test_visualization_script.py` - 可视化测试脚本的单元测试，验证脚本的参数解析、模型创建、图像加载和各类可视化功能
 - `test_tensorboard_cli.py` - TensorBoard相关CLI选项的测试，验证参数解析和配置文件加载
@@ -200,12 +188,21 @@ kczy/
 
 2. 模型训练流程：
    - 数据加载器 → `src/models/train.py` (使用 `src/models/vit.py` 定义的模型) → 训练结果 → 模型保存到 `models/` 目录
+   - 训练配置由 `src/models/train_config.py` 提供和管理
    - 优化过程由 `src/models/optimizer_manager.py` 管理
    - 训练和评估指标由 `src/utils/metrics_logger.py` 记录和分析
    - 配置由 `src/utils/config.py` 控制
    - 模型保存和加载由 `src/models/model_utils.py` 提供支持
 
-3. 命令行接口流程：
+3. 训练配置流程：
+   - 用户提供配置（命令行参数/配置文件/预定义配置） → `src/models/train_config.py` 解析和验证 → 创建TrainingConfig对象
+   - TrainingConfig对象 → `TrainingLoop.from_config()` → 配置训练循环（优化器、损失函数、学习率调度器等）
+   - TrainingConfig对象 → `setup_tensorboard()` → 配置TensorBoard记录
+   - TrainingConfig对象 → `save_training_config()` → 保存到JSON/YAML文件
+   - 保存的配置文件 → `load_training_config()` → 恢复TrainingConfig对象
+   - 设备信息 → `get_optimal_config_for_device()` → 生成设备优化的配置
+
+4. 命令行接口流程：
    - 用户提供命令行参数 → `src/utils/cli.py` 解析参数 → 转换为配置对象 → 用于训练和评估
    - 配置文件通过 `src/utils/cli.py` 的 `load_config()` 函数加载，与命令行参数结合
    - 命令行参数覆盖配置文件中的参数，提供灵活配置能力
@@ -222,20 +219,21 @@ kczy/
      - 与训练流程的完整集成测试(`cli_integration_test.py`)
      - TensorBoard选项解析和验证测试(`test_tensorboard_cli.py`)
 
-4. 模型保存和加载流程:
+5. 模型保存和加载流程:
    - 训练完成或检查点 → `src/models/model_utils.py` 保存功能 → 模型文件存储在 `models/` 目录
    - 模型文件 → `src/models/model_utils.py` 加载功能 → 恢复模型用于推理或继续训练
    - 支持多种格式：原生PyTorch模型（.pt/.pth）和ONNX格式（.onnx）
    - 优化器状态保存 → `optimizer_manager.state_dict()` → 通过`save_checkpoint()`保存到检查点文件
    - 优化器状态恢复 → 从检查点文件读取 → `optimizer_manager.load_state_dict()` → 恢复训练状态
+   - 训练配置保存 → 作为检查点的一部分通过`save_checkpoint()`保存
 
-5. ONNX模型导出和推理流程:
+6. ONNX模型导出和推理流程:
    - PyTorch模型 → `export_to_onnx()` → ONNX格式模型文件（.onnx）
    - ONNX模型文件 → `load_onnx_model()` → ONNX Runtime会话 → `onnx_inference()` → 推理结果
    - ONNX模型优化: 原始ONNX模型 → `simplify_onnx_model()`/`optimize_onnx_model()` → 优化后的ONNX模型
    - ONNX模型验证: PyTorch输出 vs ONNX输出 → `verify_onnx_model()` → 验证结果
 
-6. 性能指标可视化流程：
+7. 性能指标可视化流程：
    - 训练循环 → `src/utils/metrics_logger.py` → 指标数据保存到CSV/JSON文件
    - 指标数据 → `src/visualization/metrics_plots.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
    - 指标可视化支持通用工具和专用功能：
@@ -244,7 +242,7 @@ kczy/
      - 准确率曲线可视化: `plot_accuracy()` 生成训练和验证准确率曲线，支持百分比显示和元数据
      - 多指标可视化: `plot_training_history()` 生成多种指标历史曲线，支持批量保存
 
-7. 注意力权重可视化流程:
+8. 注意力权重可视化流程:
    - ViT模型 → `return_attention=True` 参数 → 返回注意力权重列表
    - 注意力权重 → `src/visualization/attention_viz.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
    - 可视化测试流程: ViT模型(随机初始化/预训练) → `scripts/test_visualization_with_model.py` → 全面测试所有可视化功能
@@ -253,7 +251,7 @@ kczy/
      - 图像叠加可视化: `visualize_attention_on_image()` 将注意力权重叠加到原始图像上
      - 多头对比可视化: `visualize_all_heads()` 并排展示所有注意力头，便于比较不同头的关注区域
 
-8. 模型结构可视化流程:
+9. 模型结构可视化流程:
    - ViT模型实例 → `src/visualization/model_viz.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
    - 支持多种可视化方式:
      - 整体结构可视化: `plot_model_structure()` 生成从输入到输出的完整模型结构图
@@ -267,7 +265,7 @@ kczy/
      - 详细程度控制: 支持简略或详细显示内部组件
      - 格式选择: 支持多种输出格式，适应不同用途
 
-9. 静态可视化综合流程:
+10. 静态可视化综合流程:
    - ViT模型实例 + 输入图像 → `src/visualization/static_viz.py` → 可视化结果保存到 `temp_metrics/plots/` 目录
    - 模型概览: `create_model_overview()` → 生成模型结构和参数信息的综合图表
    - 注意力分析: `create_attention_analysis()` → 生成注意力热力图和图像叠加视图
@@ -280,7 +278,7 @@ kczy/
    - 多种输出格式支持: PNG、JPG、SVG、PDF等图像格式，以及HTML格式报告
    - 支持定制化: 可自定义图像尺寸、分辨率、标题和输出路径
 
-10. TensorBoard集成流程：
+11. TensorBoard集成流程：
    - 训练开始 → 初始化TensorBoard SummaryWriter → 日志保存到`logs/`目录
    - 训练过程 → MetricsLogger记录指标到TensorBoard → 实时生成事件文件
    - TensorBoard启动方式：
@@ -305,14 +303,16 @@ kczy/
    - 命令行参数优先级高于配置文件设置
    - TensorBoard工具模块(tensorboard_utils.py)提供了启动、检查和停止TensorBoard的通用功能
 
-11. 测试流程：
+12. 测试流程：
    - `tests/` 目录下的各测试文件分别测试对应模块的功能
    - 测试结果保存在 `tests/outputs/` 目录
+   - 训练配置测试流程：从配置创建和参数验证到保存/加载和与训练循环集成的全面测试
    - CLI测试流程: 从基础单元测试(`test_cli.py`)到边界条件测试(`cli_test_edge_cases.py`)再到集成测试(`cli_integration_test.py`)，系统性验证CLI功能的正确性和健壮性
    - 综合CLI测试: `run_all_cli_tests.py`集成运行所有CLI测试并生成详细报告，支持中文输出和完整测试统计
 
 ### 配置依赖关系
-- `src/utils/config.py` 提供全局配置，包括训练参数和指标记录选项
+- `src/utils/config.py` 提供全局配置，包括TrainingConfig类定义和预定义配置
+- `src/models/train_config.py` 提供训练配置管理功能，包括创建、验证、保存和加载配置
 - `src/data/config.py` 提供数据处理特定配置
 - `src/utils/cli.py` 提供命令行参数解析和配置文件加载功能
 - 脚本通过导入这些配置模块或CLI模块访问参数

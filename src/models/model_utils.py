@@ -486,7 +486,7 @@ def get_onnx_model_info(file_path: str) -> Dict[str, Any]:
 
 def save_checkpoint(model: torch.nn.Module, optimizer_state: Dict, file_path: str, 
                    epoch: int, train_history: Optional[Dict] = None, 
-                   metadata: Optional[Dict] = None) -> None:
+                   metadata: Optional[Dict] = None, config=None) -> None:
     """
     保存训练检查点
     
@@ -497,6 +497,7 @@ def save_checkpoint(model: torch.nn.Module, optimizer_state: Dict, file_path: st
         epoch (int): 当前训练轮次
         train_history (Optional[Dict]): 训练历史记录
         metadata (Optional[Dict]): 额外元数据
+        config: 训练配置对象（例如TrainingConfig）
     
     返回:
         None
@@ -539,7 +540,28 @@ def save_checkpoint(model: torch.nn.Module, optimizer_state: Dict, file_path: st
     
     # 添加配置（如果是VisionTransformer）
     if isinstance(model, VisionTransformer):
-        checkpoint['config'] = model.get_config().to_dict()
+        checkpoint['model_config'] = model.get_config().to_dict()
+    
+    # 添加训练配置（如果提供）
+    if config is not None:
+        # 尝试使用to_dict方法如果有的话
+        if hasattr(config, 'to_dict'):
+            checkpoint['training_config'] = config.to_dict()
+        # 尝试使用dataclasses的asdict方法
+        elif hasattr(config, '__dataclass_fields__'):
+            from dataclasses import asdict
+            checkpoint['training_config'] = asdict(config)
+        # 如果上述方法都不适用，但对象可字典化
+        elif hasattr(config, '__dict__'):
+            checkpoint['training_config'] = config.__dict__
+        # 作为最后手段，尝试直接序列化
+        else:
+            try:
+                import pickle
+                checkpoint['training_config'] = pickle.dumps(config).hex()
+                checkpoint['training_config_format'] = 'pickle_hex'
+            except:
+                print("警告: 无法序列化训练配置")
     
     # 保存检查点
     torch.save(checkpoint, file_path)

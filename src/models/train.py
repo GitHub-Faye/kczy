@@ -10,12 +10,15 @@ from sklearn.metrics import precision_score, recall_score, f1_score, confusion_m
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import logging
 
 from src.models.vit import VisionTransformer
 from src.utils.config import TrainingConfig
 from src.models.optimizer_manager import OptimizerManager
 from src.utils.metrics_logger import MetricsLogger
 from src.models.model_utils import save_checkpoint, save_model
+
+logger = logging.getLogger(__name__)
 
 class LossCalculator:
     """
@@ -251,7 +254,10 @@ class TrainingLoop:
         cls,
         model: nn.Module,
         config: TrainingConfig,
-        class_weights: Optional[torch.Tensor] = None
+        class_weights: Optional[torch.Tensor] = None,
+        validate_config: bool = True,
+        setup_tb: bool = True,
+        print_summary: bool = True
     ) -> 'TrainingLoop':
         """
         从配置创建训练循环
@@ -260,10 +266,26 @@ class TrainingLoop:
             model (nn.Module): 模型
             config (TrainingConfig): 训练配置
             class_weights (Optional[torch.Tensor]): 类别权重张量
+            validate_config (bool): 是否验证配置参数
+            setup_tb (bool): 是否设置TensorBoard
+            print_summary (bool): 是否打印配置摘要
             
         返回:
             TrainingLoop: 训练循环实例
         """
+        # 导入train_config模块中的函数
+        from src.models.train_config import (
+            validate_training_params, print_training_config, setup_tensorboard
+        )
+        
+        # 验证训练参数
+        if validate_config:
+            validate_training_params(config)
+        
+        # 打印配置摘要
+        if print_summary:
+            print_training_config(config)
+        
         # 确定设备
         device = torch.device(config.device)
         
@@ -296,6 +318,27 @@ class TrainingLoop:
             scheduler_params=config.scheduler_params,
             **optimizer_params
         )
+        
+        # 设置TensorBoard（如果启用）
+        if setup_tb and config.enable_tensorboard:
+            tensorboard_writer = setup_tensorboard(config)
+            # 记录超参数到TensorBoard
+            if tensorboard_writer:
+                # 获取关键超参数
+                hparams = {
+                    'batch_size': config.batch_size,
+                    'learning_rate': config.learning_rate,
+                    'optimizer': config.optimizer_type,
+                    'weight_decay': config.weight_decay,
+                    'scheduler': config.scheduler_type or 'none',
+                    'loss_function': config.loss_type,
+                    'model_type': type(model).__name__,
+                }
+                if hasattr(model, 'num_parameters'):
+                    hparams['num_parameters'] = model.num_parameters()
+                # 记录超参数
+                metrics_dict = {'hparam/dummy': 0}  # 需要至少一个指标
+                tensorboard_writer.add_hparams(hparams, metrics_dict)
         
         # 创建指标记录器
         metrics_logger = None
@@ -461,7 +504,8 @@ class TrainingLoop:
         early_stopping: bool = False,
         early_stopping_patience: int = 10,
         checkpoint_dir: Optional[str] = None,
-        checkpoint_freq: int = 1
+        checkpoint_freq: int = 1,
+        config: Optional[TrainingConfig] = None  # 新增参数，用于保存完整训练配置
     ) -> Dict[str, List[float]]:
         """
         训练模型
@@ -565,20 +609,30 @@ class TrainingLoop:
                 os.makedirs(checkpoint_dir, exist_ok=True)
                 checkpoint_file = os.path.join(checkpoint_dir, f"checkpoint_epoch_{epoch}.pt")
                 
+                # 准备元数据
+                metadata = {
+                    "best_val_loss": best_val_loss if val_loader is not None else None,
+                    "train_metrics": train_metrics,
+                    "val_metrics": val_metrics if val_loader is not None else None,
+                    "early_stopping_count": early_stopping_count if early_stopping else None
+                }
+                
                 # 保存检查点
                 if self.optimizer_manager is not None:
                     save_checkpoint(
                         self.model,
-                        self.optimizer_manager,
+                        self.optimizer_manager.get_state(),
+                        checkpoint_file,
                         epoch,
-                        best_val_loss if val_loader is not None else None,
-                        checkpoint_file
+                        train_history={"train": train_history, "val": val_history},
+                        metadata=metadata,
+                        config=config  # 保存训练配置
                     )
                 else:
                     # 仅保存模型
-                    save_model(self.model, checkpoint_file)
+                    save_model(self.model, checkpoint_file, metadata=metadata)
                     
-                print(f"保存检查点到 {checkpoint_file}")
+                logger.info(f"保存检查点到 {checkpoint_file}")
             
             # 打印日志
             if epoch % log_interval == 0:

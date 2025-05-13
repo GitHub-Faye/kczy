@@ -218,6 +218,15 @@ class OptimizerManager:
         
         return state
     
+    def get_state(self) -> Dict:
+        """
+        获取优化器的状态字典，与state_dict()功能相同
+        
+        返回:
+            Dict: 包含完整优化器状态的字典
+        """
+        return self.state_dict()
+    
     def load_state_dict(self, state_dict: Dict) -> None:
         """
         从状态字典加载优化器状态，用于恢复检查点
