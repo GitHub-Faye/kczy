@@ -28,5 +28,5 @@ node_modules/
 # Task files
 
 /data/
-
+/data_little/
 *.pyc

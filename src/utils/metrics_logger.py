@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
-from torch.utils.tensorboard import SummaryWriter
+import wandb  # 替换 torch.utils.tensorboard 为 wandb
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +22,9 @@ class MetricsLogger:
         experiment_name (str): 实验名称，用于生成文件名
         save_format (str): 保存格式，'csv' 或 'json'
         save_freq (int): 保存频率（每多少个epoch保存一次）
-        enable_tensorboard (bool): 是否启用TensorBoard记录
-        tensorboard_log_dir (str): TensorBoard日志目录，默认为'logs'
+        enable_wandb (bool): 是否启用Weights & Biases记录
+        wandb_project (str): W&B项目名称
+        wandb_config (Dict): W&B配置参数
     """
     def __init__(
         self,
@@ -31,15 +32,16 @@ class MetricsLogger:
         experiment_name: Optional[str] = None,
         save_format: str = 'csv',
         save_freq: int = 1,
-        enable_tensorboard: bool = False,
-        tensorboard_log_dir: str = 'logs'
+        enable_wandb: bool = False,
+        wandb_project: str = 'vit_training',
+        wandb_config: Optional[Dict] = None
     ):
         self.save_dir = save_dir
         self.experiment_name = experiment_name or f"exp_{int(time.time())}"
         self.save_format = save_format.lower()
         self.save_freq = save_freq
-        self.enable_tensorboard = enable_tensorboard
-        self.tensorboard_log_dir = tensorboard_log_dir
+        self.enable_wandb = enable_wandb
+        self.wandb_project = wandb_project
         
         # 创建保存目录
         os.makedirs(self.save_dir, exist_ok=True)
@@ -58,16 +60,16 @@ class MetricsLogger:
             f"{self.experiment_name}_eval_metrics.{self.save_format}"
         )
         
-        # 初始化TensorBoard SummaryWriter
-        self.writer = None
-        if self.enable_tensorboard:
-            tensorboard_full_path = os.path.join(
-                self.tensorboard_log_dir, 
-                self.experiment_name
+        # 初始化Weights & Biases
+        self.wandb_initialized = False
+        if self.enable_wandb:
+            wandb.init(
+                project=self.wandb_project,
+                name=self.experiment_name,
+                config=wandb_config or {},
             )
-            os.makedirs(tensorboard_full_path, exist_ok=True)
-            self.writer = SummaryWriter(tensorboard_full_path)
-            logger.info(f"已启用TensorBoard，日志保存在: {tensorboard_full_path}")
+            self.wandb_initialized = True
+            logger.info(f"已启用Weights & Biases，项目：{self.wandb_project}，实验名称：{self.experiment_name}")
         
         # 读取已有的指标（如果存在）
         self._load_existing_metrics()
@@ -102,9 +104,9 @@ class MetricsLogger:
                 'timestamp': datetime.now().isoformat()
             })
             
-            # 记录到TensorBoard
-            if self.enable_tensorboard and self.writer:
-                self.writer.add_scalar(f"train/{metric_name}", metric_value, epoch)
+            # 记录到Weights & Biases
+            if self.enable_wandb and self.wandb_initialized:
+                wandb.log({f"train/{metric_name}": metric_value}, step=epoch)
         
         # 按保存频率保存指标
         if epoch % self.save_freq == 0:
@@ -129,9 +131,16 @@ class MetricsLogger:
                 'timestamp': datetime.now().isoformat()
             })
             
-            # 记录到TensorBoard
-            if self.enable_tensorboard and self.writer:
-                self.writer.add_scalar(f"val/{metric_name}", metric_value, epoch)
+            # 记录到Weights & Biases
+            if self.enable_wandb and self.wandb_initialized:
+                # 评估阶段，检查当前wandb步骤，避免使用较小的步骤值
+                if wandb.run and hasattr(wandb.run, 'step'):
+                    current_step = wandb.run.step
+                    log_step = max(epoch, current_step + 1)  # 确保步骤大于当前步骤
+                else:
+                    log_step = epoch
+                
+                wandb.log({f"val/{metric_name}": metric_value}, step=log_step)
         
         # 按保存频率保存指标
         if epoch % self.save_freq == 0:
@@ -142,7 +151,7 @@ class MetricsLogger:
     
     def log_histogram(self, name: str, values: np.ndarray, epoch: int, tag: str = "model"):
         """
-        记录直方图数据到TensorBoard。
+        记录直方图数据到Weights & Biases。
         
         参数:
             name (str): 指标名称
@@ -150,13 +159,13 @@ class MetricsLogger:
             epoch (int): 当前轮次
             tag (str): 标签类别，如'model'、'gradients'等
         """
-        if self.enable_tensorboard and self.writer:
-            self.writer.add_histogram(f"{tag}/{name}", values, epoch)
+        if self.enable_wandb and self.wandb_initialized:
+            wandb.log({f"{tag}/{name}": wandb.Histogram(values)}, step=epoch)
         return self
     
     def log_image(self, name: str, image: np.ndarray, epoch: int, tag: str = "images"):
         """
-        记录图像到TensorBoard。
+        记录图像到Weights & Biases。
         
         参数:
             name (str): 图像名称
@@ -164,13 +173,13 @@ class MetricsLogger:
             epoch (int): 当前轮次
             tag (str): 标签类别
         """
-        if self.enable_tensorboard and self.writer:
-            self.writer.add_image(f"{tag}/{name}", image, epoch, dataformats='HWC')
+        if self.enable_wandb and self.wandb_initialized:
+            wandb.log({f"{tag}/{name}": wandb.Image(image)}, step=epoch)
         return self
     
     def log_figure(self, name: str, figure: plt.Figure, epoch: int, tag: str = "plots"):
         """
-        记录matplotlib图表到TensorBoard。
+        记录matplotlib图表到Weights & Biases。
         
         参数:
             name (str): 图表名称
@@ -178,29 +187,30 @@ class MetricsLogger:
             epoch (int): 当前轮次
             tag (str): 标签类别
         """
-        if self.enable_tensorboard and self.writer:
-            self.writer.add_figure(f"{tag}/{name}", figure, epoch)
+        if self.enable_wandb and self.wandb_initialized:
+            wandb.log({f"{tag}/{name}": wandb.Image(figure)}, step=epoch)
         return self
     
     def log_hparams(self, hparams: Dict[str, Any], metrics: Dict[str, float]):
         """
-        记录超参数到TensorBoard。
+        记录超参数到Weights & Biases。
         
         参数:
             hparams (Dict[str, Any]): 超参数字典
             metrics (Dict[str, float]): 与超参数关联的指标结果
         """
-        if self.enable_tensorboard and self.writer:
-            self.writer.add_hparams(hparams, metrics)
+        if self.enable_wandb and self.wandb_initialized:
+            wandb.config.update(hparams, allow_val_change=True)  # 允许值改变
+            wandb.log(metrics)
         return self
     
     def close(self):
         """
-        关闭TensorBoard SummaryWriter。应在训练结束时调用。
+        关闭Weights & Biases连接。应在训练结束时调用。
         """
-        if self.enable_tensorboard and self.writer:
-            self.writer.close()
-            logger.info("TensorBoard SummaryWriter已关闭")
+        if self.enable_wandb and self.wandb_initialized:
+            wandb.finish()
+            logger.info("Weights & Biases连接已关闭")
     
     def _save_metrics(self, metrics: Dict[str, List[Dict]], path: str):
         """
@@ -254,11 +264,8 @@ class MetricsLogger:
         加载训练指标。
         
         返回:
-            Dict: 训练指标字典
+            Dict[str, List[Dict]]: 加载的训练指标
         """
-        if not os.path.exists(self.train_metrics_path):
-            return defaultdict(list)
-        
         return self._load_metrics(self.train_metrics_path)
     
     def load_eval_metrics(self) -> Dict[str, List[Dict]]:
@@ -266,11 +273,8 @@ class MetricsLogger:
         加载评估指标。
         
         返回:
-            Dict: 评估指标字典
+            Dict[str, List[Dict]]: 加载的评估指标
         """
-        if not os.path.exists(self.eval_metrics_path):
-            return defaultdict(list)
-        
         return self._load_metrics(self.eval_metrics_path)
     
     def _load_metrics(self, path: str) -> Dict[str, List[Dict]]:
@@ -504,55 +508,29 @@ class MetricsLogger:
     
     def visualize_all_metrics(self, output_dir: str) -> None:
         """
-        可视化所有指标，并生成汇总报告。
+        可视化所有指标并保存图表。
         
         参数:
             output_dir (str): 输出目录
         """
         os.makedirs(output_dir, exist_ok=True)
         
-        # 获取所有独特的指标名称（不包括val_前缀）
-        all_metric_names = set()
-        for name in self.train_metrics.keys():
-            all_metric_names.add(name)
+        # 获取所有训练指标名称
+        train_metric_names = list(self.train_metrics.keys())
         
-        for name in self.eval_metrics.keys():
-            if name.startswith('val_'):
-                base_name = name[4:]  # 移除'val_'前缀
-                all_metric_names.add(base_name)
+        # 绘制所有训练指标
+        if train_metric_names:
+            self.plot_metrics(train_metric_names, output_dir)
         
-        # 为每个指标绘制曲线
-        for metric_name in all_metric_names:
-            output_path = os.path.join(output_dir, f"{metric_name}_curve.png")
-            self.plot_metric(metric_name, output_path)
-        
-        # 生成汇总报告
-        summary = self.summary(detailed=True)
-        report_path = os.path.join(output_dir, "metrics_summary.json")
-        with open(report_path, 'w', encoding='utf-8') as f:
-            json.dump(summary, f, indent=2)
-        
-        # 生成markdown格式的汇总报告
-        md_report_path = os.path.join(output_dir, "metrics_summary.md")
-        with open(md_report_path, 'w', encoding='utf-8') as f:
-            f.write(f"# 实验指标汇总报告\n\n")
-            f.write(f"## 实验名称: {summary['experiment_name']}\n\n")
+        # 如果使用W&B，上传所有图表
+        if self.enable_wandb and self.wandb_initialized:
+            for file in os.listdir(output_dir):
+                if file.endswith('.png') or file.endswith('.jpg'):
+                    image_path = os.path.join(output_dir, file)
+                    wandb.log({f"summary_plots/{file}": wandb.Image(image_path)})
             
-            f.write("## 训练指标\n\n")
-            f.write("| 指标名称 | 最小值 | 最大值 | 平均值 | 标准差 |\n")
-            f.write("|---------|-------|-------|-------|-------|\n")
-            for metric_name, stats in summary.get('train_metrics_stats', {}).items():
-                f.write(f"| {metric_name} | {stats['min']:.4f} | {stats['max']:.4f} | {stats['mean']:.4f} | {stats['std']:.4f} |\n")
-            
-            f.write("\n## 评估指标\n\n")
-            f.write("| 指标名称 | 最小值 | 最大值 | 平均值 | 标准差 |\n")
-            f.write("|---------|-------|-------|-------|-------|\n")
-            for metric_name, stats in summary.get('eval_metrics_stats', {}).items():
-                f.write(f"| {metric_name} | {stats['min']:.4f} | {stats['max']:.4f} | {stats['mean']:.4f} | {stats['std']:.4f} |\n")
-            
-            f.write("\n## 最佳模型\n\n")
-            for metric_name in summary.get('eval_metrics_stats', {}):
-                if metric_name.startswith('val_'):
-                    mode = 'min' if 'loss' in metric_name else 'max'
-                    best = self.get_best_epoch(metric_name, mode)
-                    f.write(f"- **{metric_name}**: 轮次 {best['epoch']}, 值 {best['value']:.4f} ({mode}模式)\n") 
+            # 记录摘要统计信息
+            summary_stats = self.summary()
+            for key, value in summary_stats.items():
+                if isinstance(value, (int, float)):
+                    wandb.run.summary[key] = value 

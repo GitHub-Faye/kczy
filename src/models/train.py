@@ -10,6 +10,8 @@ from sklearn.metrics import precision_score, recall_score, f1_score, confusion_m
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+from tqdm import tqdm
+import wandb
 
 from src.models.vit import VisionTransformer
 from src.utils.config import TrainingConfig
@@ -312,8 +314,9 @@ class TrainingLoop:
                 experiment_name=experiment_name,
                 save_format=config.metrics_format,
                 save_freq=config.metrics_save_freq,
-                enable_tensorboard=config.enable_tensorboard,
-                tensorboard_log_dir=config.tensorboard_dir
+                enable_wandb=config.enable_wandb,
+                wandb_project=config.wandb_project,
+                wandb_config=config.wandb_config if hasattr(config, 'wandb_config') else None
             )
         
         # 返回训练循环实例
@@ -338,42 +341,84 @@ class TrainingLoop:
         
         参数:
             train_loader (DataLoader): 训练数据加载器
-            epoch (int): 当前周期数
+            epoch (int): 当前周期
             
         返回:
             Dict[str, float]: 训练指标
         """
         self.model.train()
-        total_loss = 0
+        total_loss = 0.0
         correct = 0
         total = 0
         
-        # 记录样本图像到TensorBoard（仅第一个epoch）
-        if self.log_images and self.metrics_logger and self.metrics_logger.enable_tensorboard and epoch == 1:
-            # 获取一批数据用于可视化
+        # 记录样本图像
+        if self.log_images and self.metrics_logger and self.metrics_logger.enable_wandb:
             for batch_idx, (inputs, targets) in enumerate(train_loader):
-                # 最多记录16张图像
-                if batch_idx == 0 and inputs.shape[0] > 0:
-                    # 对于3通道图像
-                    if inputs.shape[1] == 3:
-                        for i in range(min(16, inputs.shape[0])):
+                if batch_idx == 0:  # 只记录第一个批次的图像
+                    for i in range(min(4, inputs.size(0))):  # 最多记录4张图像
+                        if self.metrics_logger:
+                            # 转换为CPU上的NumPy数组
                             img = inputs[i].cpu().numpy().transpose(1, 2, 0)
                             # 归一化到[0, 1]范围
                             img = (img - img.min()) / (img.max() - img.min() + 1e-8)
                             self.metrics_logger.log_image(
-                                f"sample_{i}_label_{targets[i].item()}", 
+                                f"sample_{i}_label_{targets[i].item() if not isinstance(targets, list) else 'unknown'}", 
                                 img, 
                                 epoch
                             )
                 break
         
+        # 添加进度条
+        pbar = tqdm(train_loader, desc=f"训练 Epoch {epoch}", unit="batch", leave=True)
+        
         # 训练循环
-        for batch_idx, (inputs, targets) in enumerate(train_loader):
-            inputs, targets = inputs.to(self.device), targets.to(self.device)
+        for batch_idx, (inputs, targets) in enumerate(pbar):
+            # 将输入数据移动到设备上
+            inputs = inputs.to(self.device)
+            
+            # 处理targets - 可能是张量或字典列表
+            if isinstance(targets, torch.Tensor):
+                targets = targets.to(self.device)
+            elif isinstance(targets, list) and all(isinstance(t, dict) for t in targets):
+                # 处理字典列表情况 - 需要递归处理每个字典中的张量
+                processed_targets = []
+                for target_dict in targets:
+                    processed_dict = {}
+                    for k, v in target_dict.items():
+                        if isinstance(v, torch.Tensor):
+                            processed_dict[k] = v.to(self.device)
+                        else:
+                            processed_dict[k] = v
+                    processed_targets.append(processed_dict)
+                targets = processed_targets
             
             # 前向传播
             outputs = self.model(inputs)
-            loss = self.loss_calculator(outputs, targets)
+            
+            # 计算损失 - 根据targets类型调整
+            if isinstance(targets, list) and all(isinstance(t, dict) for t in targets):
+                # 如果是对象检测或分割任务，targets是字典列表
+                # 从字典中提取标签进行损失计算
+                # 假设我们需要从targets中获取labels
+                if all('labels' in t for t in targets):
+                    label_tensors = [t['labels'] for t in targets]
+                    # 如果labels是批次维度的张量，需要连接它们
+                    if all(isinstance(lt, torch.Tensor) and lt.dim() > 0 for lt in label_tensors):
+                        labels = torch.cat(label_tensors, dim=0)
+                        loss = self.loss_calculator(outputs, labels)
+                    else:
+                        # 如果无法正确提取标签，使用自定义的损失计算逻辑
+                        # 这里可能需要根据具体的任务类型来调整
+                        print(f"警告: 在第{epoch}个epoch的第{batch_idx}个批次中无法提取标准标签格式")
+                        # 默认处理：根据模型的输出和targets计算适当的损失
+                        # 这里需要根据具体任务自定义损失计算逻辑
+                        loss = torch.tensor(0.0, device=self.device, requires_grad=True)
+                else:
+                    print(f"警告: 在第{epoch}个epoch的第{batch_idx}个批次中targets字典中没有'labels'键")
+                    loss = torch.tensor(0.0, device=self.device, requires_grad=True)
+            else:
+                # 标准分类任务
+                loss = self.loss_calculator(outputs, targets)
             
             # 反向传播和优化
             if self.backprop_manager is not None and self.optimizer_manager is not None:
@@ -383,18 +428,30 @@ class TrainingLoop:
                     self.optimizer_manager
                 )
             
-            # 统计
-            total_loss += loss.item()
-            _, predicted = outputs.max(1)
-            total += targets.size(0)
-            correct += predicted.eq(targets).sum().item()
+            # 统计 - 根据任务类型调整
+            current_loss = loss.item()
+            total_loss += current_loss
             
+            # 对于分类任务，计算准确率
+            if not isinstance(targets, list):
+                _, predicted = outputs.max(1)
+                total += targets.size(0)
+                current_correct = predicted.eq(targets).sum().item()
+                correct += current_correct
+                current_acc = 100.0 * current_correct / targets.size(0)
+                pbar.set_postfix({'loss': f"{current_loss:.4f}", 'acc': f"{current_acc:.2f}%"})
+            else:
+                # 对于对象检测等任务，准确率计算可能不同
+                # 这里只增加样本数，不计算准确率
+                total += inputs.size(0)
+                pbar.set_postfix({'loss': f"{current_loss:.4f}"})
+        
         # 计算平均损失和准确率
         avg_loss = total_loss / len(train_loader)
-        accuracy = 100. * correct / total
+        accuracy = 100. * correct / total if total > 0 and correct > 0 else 0.0
         
         # 记录模型参数和梯度直方图(每个epoch记录)
-        if self.log_histograms and self.metrics_logger and self.metrics_logger.enable_tensorboard:
+        if self.log_histograms and self.metrics_logger and self.metrics_logger.enable_wandb:
             for name, param in self.model.named_parameters():
                 if param.grad is not None:
                     self.metrics_logger.log_histogram(f"{name}.grad", param.grad.cpu().numpy(), epoch, "gradients")
@@ -424,27 +481,77 @@ class TrainingLoop:
         correct = 0
         total = 0
         
+        # 添加进度条
+        pbar = tqdm(val_loader, desc="验证中", unit="batch", leave=True)
+        
         with torch.no_grad():
-            for inputs, targets in val_loader:
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
+            for inputs, targets in pbar:
+                # 将输入数据移动到设备上
+                inputs = inputs.to(self.device)
+                
+                # 处理targets - 可能是张量或字典列表
+                if isinstance(targets, torch.Tensor):
+                    targets = targets.to(self.device)
+                elif isinstance(targets, list) and all(isinstance(t, dict) for t in targets):
+                    # 处理字典列表情况 - 需要递归处理每个字典中的张量
+                    processed_targets = []
+                    for target_dict in targets:
+                        processed_dict = {}
+                        for k, v in target_dict.items():
+                            if isinstance(v, torch.Tensor):
+                                processed_dict[k] = v.to(self.device)
+                            else:
+                                processed_dict[k] = v
+                        processed_targets.append(processed_dict)
+                    targets = processed_targets
                 
                 # 前向传播
                 outputs = self.model(inputs)
                 
-                # 计算损失
-                loss = self.loss_calculator(outputs, targets)
+                # 计算损失 - 根据targets类型调整
+                if isinstance(targets, list) and all(isinstance(t, dict) for t in targets):
+                    # 如果是对象检测或分割任务，targets是字典列表
+                    # 从字典中提取标签进行损失计算
+                    if all('labels' in t for t in targets):
+                        label_tensors = [t['labels'] for t in targets]
+                        # 如果labels是批次维度的张量，需要连接它们
+                        if all(isinstance(lt, torch.Tensor) and lt.dim() > 0 for lt in label_tensors):
+                            labels = torch.cat(label_tensors, dim=0)
+                            loss = self.loss_calculator(outputs, labels)
+                        else:
+                            # 如果无法正确提取标签，使用自定义的损失计算逻辑
+                            print(f"验证时无法提取标准标签格式")
+                            # 默认处理
+                            loss = torch.tensor(0.0, device=self.device)
+                    else:
+                        print(f"验证时targets字典中没有'labels'键")
+                        loss = torch.tensor(0.0, device=self.device)
+                else:
+                    # 标准分类任务
+                    loss = self.loss_calculator(outputs, targets)
                 
                 # 计算准确率（如果是分类任务）
-                _, predicted = outputs.max(1)
-                total += targets.size(0)
-                correct += predicted.eq(targets).sum().item()
+                current_loss = loss.item()
+                if not isinstance(targets, list):
+                    _, predicted = outputs.max(1)
+                    batch_size = targets.size(0)
+                    total += batch_size
+                    current_correct = predicted.eq(targets).sum().item()
+                    correct += current_correct
+                    current_acc = 100.0 * current_correct / batch_size
+                    pbar.set_postfix({'val_loss': f"{current_loss:.4f}", 'val_acc': f"{current_acc:.2f}%"})
+                else:
+                    # 对于对象检测等任务，准确率计算可能不同
+                    # 这里只增加样本数，不计算准确率
+                    total += inputs.size(0)
+                    pbar.set_postfix({'val_loss': f"{current_loss:.4f}"})
                 
                 # 累加损失
-                total_loss += loss.item()
+                total_loss += current_loss
         
         # 计算平均损失和准确率
         avg_loss = total_loss / len(val_loader)
-        accuracy = 100.0 * correct / total
+        accuracy = 100.0 * correct / total if total > 0 and correct > 0 else 0.0
         
         return {
             'val_loss': avg_loss,
@@ -487,12 +594,18 @@ class TrainingLoop:
         train_history = {'loss': [], 'accuracy': []}
         val_history = {'loss': [], 'accuracy': []}
         
+        # 初始化用于跟踪的属性
+        self.train_losses = []
+        self.val_losses = []
+        self.train_accs = []
+        self.val_accs = []
+        
         if checkpoint_path is not None:
             # 恢复代码保持不变...
             pass
         
-        # 如果使用TensorBoard记录超参数
-        if self.metrics_logger and self.metrics_logger.enable_tensorboard:
+        # 如果使用Weights & Biases记录超参数
+        if self.metrics_logger and self.metrics_logger.enable_wandb:
             # 收集超参数
             hparams = {}
             if self.optimizer_manager is not None:
@@ -529,18 +642,27 @@ class TrainingLoop:
             
             # 将在训练结束时记录最终指标
         
+        # 添加 epoch 进度条
+        epochs_pbar = tqdm(range(start_epoch, num_epochs + 1), desc="训练进度", unit="epoch", position=0)
+        
         # 训练循环
-        for epoch in range(start_epoch, num_epochs + 1):
+        for epoch in epochs_pbar:
             # 训练一个周期
             train_metrics = self.train_epoch(train_loader, epoch)
             train_history['loss'].append(train_metrics['loss'])
             train_history['accuracy'].append(train_metrics['accuracy'])
+            # 更新用于跟踪的属性
+            self.train_losses.append(train_metrics['loss'])
+            self.train_accs.append(train_metrics['accuracy'])
             
             # 验证
             if val_loader is not None:
                 val_metrics = self.validate(val_loader)
                 val_history['loss'].append(val_metrics['val_loss'])
                 val_history['accuracy'].append(val_metrics['val_accuracy'])
+                # 更新用于跟踪的属性
+                self.val_losses.append(val_metrics['val_loss'])
+                self.val_accs.append(val_metrics['val_accuracy'])
                 
                 # 检查早停
                 if early_stopping:
@@ -569,16 +691,22 @@ class TrainingLoop:
                 if self.optimizer_manager is not None:
                     save_checkpoint(
                         self.model,
-                        self.optimizer_manager,
-                        epoch,
-                        best_val_loss if val_loader is not None else None,
-                        checkpoint_file
+                        self.optimizer_manager.state_dict(),  # 获取优化器状态
+                        checkpoint_file,  # 文件路径
+                        epoch,  # 当前epoch
+                        best_val_loss if val_loader is not None else None  # 训练历史
                     )
                 else:
                     # 仅保存模型
                     save_model(self.model, checkpoint_file)
                     
-                print(f"保存检查点到 {checkpoint_file}")
+                epochs_pbar.write(f"保存检查点到 {checkpoint_file}")
+            
+            # 更新进度条描述，显示当前指标
+            status_desc = f"损失:{train_metrics['loss']:.4f} 准确率:{train_metrics['accuracy']:.2f}%"
+            if val_loader is not None:
+                status_desc += f" | 验证损失:{val_metrics['val_loss']:.4f} 验证准确率:{val_metrics['val_accuracy']:.2f}%"
+            epochs_pbar.set_postfix_str(status_desc)
             
             # 打印日志
             if epoch % log_interval == 0:
@@ -590,10 +718,10 @@ class TrainingLoop:
                     log_str += f"Val Loss: {val_metrics['val_loss']:.4f} "
                     log_str += f"Val Acc: {val_metrics['val_accuracy']:.2f}% "
                 
-                print(log_str)
+                epochs_pbar.write(log_str)
         
-        # 训练结束后，记录最终的超参数和结果指标到TensorBoard
-        if self.metrics_logger and self.metrics_logger.enable_tensorboard:
+        # 训练结束后，记录最终的超参数和结果指标到Weights & Biases
+        if self.metrics_logger and self.metrics_logger.enable_wandb:
             # 创建最终结果指标字典
             final_metrics = {}
             if train_history['loss']:
@@ -608,8 +736,7 @@ class TrainingLoop:
             # 记录超参数和最终指标
             self.metrics_logger.log_hparams(hparams, final_metrics)
             
-            # 关闭TensorBoard writer
-            self.metrics_logger.close()
+            # 注意：不要在这里关闭连接，因为后续还需要继续使用wandb记录评估指标
         
         return {
             'train': train_history,
@@ -644,80 +771,178 @@ class TrainingLoop:
         y_true = []
         y_pred = []
         
+        # 添加进度条
+        pbar = tqdm(test_loader, desc="测试评估中", unit="batch", leave=True)
+        
         with torch.no_grad():
-            for inputs, targets in test_loader:
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
+            for inputs, targets in pbar:
+                # 将输入数据移动到设备上
+                inputs = inputs.to(self.device)
+                
+                # 处理targets - 可能是张量或字典列表
+                if isinstance(targets, torch.Tensor):
+                    targets = targets.to(self.device)
+                elif isinstance(targets, list) and all(isinstance(t, dict) for t in targets):
+                    # 处理字典列表情况 - 需要递归处理每个字典中的张量
+                    processed_targets = []
+                    for target_dict in targets:
+                        processed_dict = {}
+                        for k, v in target_dict.items():
+                            if isinstance(v, torch.Tensor):
+                                processed_dict[k] = v.to(self.device)
+                            else:
+                                processed_dict[k] = v
+                        processed_targets.append(processed_dict)
+                    targets = processed_targets
                 
                 # 前向传播
                 outputs = self.model(inputs)
                 
-                # 计算损失
-                loss = self.loss_calculator(outputs, targets)
+                # 计算损失 - 根据targets类型调整
+                if isinstance(targets, list) and all(isinstance(t, dict) for t in targets):
+                    # 如果是对象检测或分割任务，targets是字典列表
+                    # 从字典中提取标签进行损失计算
+                    if all('labels' in t for t in targets):
+                        label_tensors = [t['labels'] for t in targets]
+                        # 如果labels是批次维度的张量，需要连接它们
+                        if all(isinstance(lt, torch.Tensor) and lt.dim() > 0 for lt in label_tensors):
+                            labels = torch.cat(label_tensors, dim=0)
+                            loss = self.loss_calculator(outputs, labels)
+                        else:
+                            # 如果无法正确提取标签，使用自定义的损失计算逻辑
+                            print(f"测试时无法提取标准标签格式")
+                            # 默认处理
+                            loss = torch.tensor(0.0, device=self.device)
+                    else:
+                        print(f"测试时targets字典中没有'labels'键")
+                        loss = torch.tensor(0.0, device=self.device)
+                else:
+                    # 标准分类任务
+                    loss = self.loss_calculator(outputs, targets)
                 
                 # 计算准确率（如果是分类任务）
-                _, predicted = outputs.max(1)
-                total += targets.size(0)
-                correct += predicted.eq(targets).sum().item()
+                current_loss = loss.item()
+                if not isinstance(targets, list):
+                    _, predicted = outputs.max(1)
+                    batch_size = targets.size(0)
+                    total += batch_size
+                    current_correct = predicted.eq(targets).sum().item()
+                    correct += current_correct
+                    current_acc = 100.0 * current_correct / batch_size
+                    
+                    # 记录真实标签和预测标签
+                    y_true.extend(targets.cpu().numpy())
+                    y_pred.extend(predicted.cpu().numpy())
+                    
+                    # 更新进度条
+                    pbar.set_postfix({'test_loss': f"{current_loss:.4f}", 'test_acc': f"{current_acc:.2f}%"})
+                else:
+                    # 对于对象检测等任务，准确率计算可能不同
+                    # 这里只增加样本数，不计算准确率
+                    total += inputs.size(0)
+                    
+                    # 对于对象检测任务，尝试从字典中提取标签 (如果存在)
+                    if all('labels' in t for t in targets):
+                        for i, target_dict in enumerate(targets):
+                            if isinstance(target_dict['labels'], torch.Tensor):
+                                # 获取当前样本的标签
+                                labels = target_dict['labels'].cpu().numpy()
+                                # 获取当前样本的预测结果
+                                _, sample_pred = outputs[i].max(0)
+                                sample_pred = sample_pred.cpu().numpy()
+                                # 添加到总体结果中
+                                y_true.extend(labels)
+                                y_pred.extend([sample_pred] * len(labels))
+                    
+                    # 更新进度条，不显示准确率
+                    pbar.set_postfix({'test_loss': f"{current_loss:.4f}"})
                 
                 # 累加损失
-                total_loss += loss.item()
-                
-                # 记录真实标签和预测标签
-                y_true.extend(targets.cpu().numpy())
-                y_pred.extend(predicted.cpu().numpy())
+                total_loss += current_loss
         
         # 计算平均损失和准确率
         avg_loss = total_loss / len(test_loader)
-        accuracy = 100.0 * correct / total
-        
-        # 转换为numpy数组
-        y_true = np.array(y_true)
-        y_pred = np.array(y_pred)
-        
-        # 检测类别数量
-        if num_classes is None:
-            num_classes = len(np.unique(np.concatenate([y_true, y_pred])))
-        
-        # 是否为二分类问题
-        is_binary = num_classes == 2
-        
-        # 计算更多的评价指标
-        if is_binary:
-            # 二分类问题的评价指标
-            precision = precision_score(y_true, y_pred)
-            recall = recall_score(y_true, y_pred)
-            f1 = f1_score(y_true, y_pred)
-        else:
-            # 多分类问题的评价指标
-            precision = precision_score(y_true, y_pred, average=average, zero_division=0)
-            recall = recall_score(y_true, y_pred, average=average, zero_division=0)
-            f1 = f1_score(y_true, y_pred, average=average, zero_division=0)
-        
-        # 计算混淆矩阵
-        conf_matrix = confusion_matrix(y_true, y_pred, labels=range(num_classes))
-        class_report = classification_report(y_true, y_pred, labels=range(num_classes))
-        
-        # 可视化混淆矩阵
-        if visualize_confusion_matrix:
-            self._plot_confusion_matrix(conf_matrix, num_classes, output_path)
+        accuracy = 100.0 * correct / total if total > 0 and correct > 0 else 0.0
         
         # 整理评估指标
         eval_metrics = {
             'test_loss': avg_loss,
-            'test_accuracy': accuracy,
-            'precision': precision * 100.0,  # 转换为百分比
-            'recall': recall * 100.0,        # 转换为百分比
-            'f1_score': f1 * 100.0,          # 转换为百分比
-            'confusion_matrix': conf_matrix,
-            'classification_report': class_report
+            'test_accuracy': accuracy
         }
+        
+        # 如果有收集的标签和预测值，计算详细的评估指标
+        if len(y_true) > 0 and len(y_pred) > 0:
+            # 转换为numpy数组
+            y_true = np.array(y_true)
+            y_pred = np.array(y_pred)
+            
+            # 检测类别数量
+            if num_classes is None:
+                num_classes = len(np.unique(np.concatenate([y_true, y_pred])))
+            
+            # 是否为二分类问题
+            is_binary = num_classes == 2
+            
+            # 计算更多的评价指标
+            if is_binary:
+                # 二分类问题的评价指标
+                precision = precision_score(y_true, y_pred)
+                recall = recall_score(y_true, y_pred)
+                f1 = f1_score(y_true, y_pred)
+            else:
+                # 多分类问题的评价指标
+                precision = precision_score(y_true, y_pred, average=average, zero_division=0)
+                recall = recall_score(y_true, y_pred, average=average, zero_division=0)
+                f1 = f1_score(y_true, y_pred, average=average, zero_division=0)
+            
+            # 计算混淆矩阵
+            conf_matrix = confusion_matrix(y_true, y_pred, labels=range(num_classes))
+            class_report = classification_report(y_true, y_pred, labels=range(num_classes))
+            
+            # 可视化混淆矩阵
+            if visualize_confusion_matrix:
+                self._plot_confusion_matrix(conf_matrix, num_classes, output_path)
+            
+            # 添加到评估指标
+            eval_metrics.update({
+                'precision': precision * 100.0,  # 转换为百分比
+                'recall': recall * 100.0,        # 转换为百分比
+                'f1_score': f1 * 100.0,          # 转换为百分比
+                'confusion_matrix': conf_matrix,
+                'classification_report': class_report
+            })
+        else:
+            print("警告: 无法计算详细评估指标，因为没有收集到足够的真实标签和预测值")
+            # 添加默认值，避免代码后续报错
+            eval_metrics.update({
+                'precision': 0.0,
+                'recall': 0.0,
+                'f1_score': 0.0,
+                'confusion_matrix': np.zeros((1, 1)),
+                'classification_report': "无法生成分类报告"
+            })
         
         # 如果有指标记录器，记录评估指标
         if self.metrics_logger is not None:
             # 创建一个指标副本，不包含复杂对象（如numpy数组和字符串）
             metrics_for_logging = {k: v for k, v in eval_metrics.items()
                                   if not isinstance(v, (np.ndarray, str))}
-            self.metrics_logger.log_eval_metrics(metrics_for_logging, 0)  # 使用epoch=0表示最终测试
+            
+            # 使用当前的wandb步骤+10作为评估步骤，确保不会有步骤冲突
+            # 为评估指标预留一个较大的步骤空间
+            current_epoch = 1000  # 使用一个足够大的值，确保不会冲突
+            if hasattr(self, 'train_losses') and len(self.train_losses) > 0:
+                # 如果有训练历史，使用训练轮次数+100作为基础
+                current_epoch = len(self.train_losses) + 100
+                
+            # 如果使用wandb，检查当前步骤
+            if self.metrics_logger.enable_wandb and self.metrics_logger.wandb_initialized and wandb.run:
+                if hasattr(wandb.run, 'step'):
+                    # 使用当前wandb步骤+10确保没有冲突
+                    current_epoch = max(current_epoch, wandb.run.step + 10)
+                    
+            # 使用计算的步骤记录指标
+            self.metrics_logger.log_eval_metrics(metrics_for_logging, current_epoch)
         
         return eval_metrics
     
